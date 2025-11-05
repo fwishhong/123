@@ -3,7 +3,7 @@ class GameState {
     constructor() {
         this.currentDay = 1;
         this.currentTimeslot = 'morning'; // morning, afternoon, night
-        this.maxDay = 15; // 原型只做Day 1-15
+        this.maxDay = 15;
 
         // 属性系统
         this.attributes = {
@@ -15,27 +15,48 @@ class GameState {
 
         // 关系系统
         this.relationships = {
-            akira: { name: '晓', level: 2, exp: 0 },
-            rei: { name: '零', level: 1, exp: 0 }
+            akira: { name: '晓', level: 1, exp: 0 },
+            rei: { name: '零', level: 1, exp: 0 },
+            mizuki: { name: '美月', level: 1, exp: 0 }
         };
 
-        // 任务系统
-        this.missions = [
-            {
-                id: 'mission_01',
-                name: '第一个任务',
-                deadline: 15,
-                progress: 0,
-                required: 3
+        // 任务系统（重新设计）
+        this.mainMission = {
+            id: 'rescue_mizuki',
+            name: '拯救美月',
+            active: false,
+            deadline: 15,
+            startDay: 10,
+            requirements: {
+                combat: 3,
+                clues: 3,
+                ally: null // 'akira' or 'rei'
+            },
+            progress: {
+                combat: 1,
+                clues: 0,
+                ally: null
             }
-        ];
+        };
+
+        // 游戏标记
+        this.flags = {
+            tutorial_complete: false,
+            ability_awakened: false,
+            mission_started: false,
+            akira_crisis: false,
+            rei_crisis: false,
+            akira_helped: false,
+            rei_helped: false,
+            mission_complete: false
+        };
 
         // 完成的活动记录
-        this.completedActivities = [];
+        this.completedEvents = [];
         this.todayActivities = [];
 
-        // 事件标记
-        this.flags = [];
+        // 准备度（用于任务检查）
+        this.preparedness = 0;
     }
 
     // 添加属性经验
@@ -43,16 +64,19 @@ class GameState {
         const attr = this.attributes[attrName];
         attr.exp += amount;
 
-        // 检查是否升级
         while (attr.exp >= attr.expToNext && attr.level < 10) {
             attr.exp -= attr.expToNext;
             attr.level++;
-            attr.expToNext = Math.floor(attr.expToNext * 1.5); // 经验需求递增
+            attr.expToNext = Math.floor(attr.expToNext * 1.5);
 
             showNotification(`${attrName} 升级到 Lv ${attr.level}!`, 'success');
+
+            // 更新任务进度
+            if (attrName === 'combat' && this.mainMission.active) {
+                this.mainMission.progress.combat = attr.level;
+            }
         }
 
-        // 最高10级
         if (attr.level >= 10) {
             attr.exp = 0;
             attr.expToNext = 0;
@@ -67,8 +91,17 @@ class GameState {
             if (this.relationships[charId].exp >= 100) {
                 this.relationships[charId].exp -= 100;
                 this.relationships[charId].level++;
-                showNotification(`与 ${this.relationships[charId].name} 的关系提升!`, 'success');
+                showNotification(`与 ${this.relationships[charId].name} 的关系提升到 Lv ${this.relationships[charId].level}!`, 'success');
             }
+        }
+    }
+
+    // 添加线索
+    addClue(clueId) {
+        if (!this.flags[clueId]) {
+            this.flags[clueId] = true;
+            this.mainMission.progress.clues++;
+            showNotification('获得了关键线索！', 'success');
         }
     }
 
@@ -85,230 +118,456 @@ class GameState {
             this.currentTimeslot = 'morning';
             this.todayActivities = [];
 
-            // 检查是否到达截止日期
-            this.checkDeadlines();
+            // 检查关键剧情触发
+            checkDayTriggers();
+        }
+
+        // 更新准备度
+        if (this.mainMission.active) {
+            this.updatePreparedness();
         }
     }
 
-    // 检查任务截止日期
-    checkDeadlines() {
-        this.missions.forEach(mission => {
-            if (this.currentDay === mission.deadline) {
-                showNotification(`今天是"${mission.name}"的截止日期！`, 'warning');
-            }
-        });
+    // 更新准备度
+    updatePreparedness() {
+        const req = this.mainMission.requirements;
+        const prog = this.mainMission.progress;
+
+        let score = 0;
+        score += (prog.combat / req.combat) * 40; // 战斗力40%
+        score += (prog.clues / req.clues) * 40; // 线索40%
+        score += (prog.ally ? 20 : 0); // 盟友20%
+
+        this.preparedness = Math.min(100, Math.floor(score));
     }
 
     // 检查游戏是否结束
     isGameOver() {
-        return this.currentDay > this.maxDay;
+        return this.currentDay > this.maxDay || this.flags.mission_complete;
     }
 }
 
 // 全局游戏状态
 let gameState = new GameState();
 
-// ===== 事件数据 =====
-const eventsData = [
+// ===== 对话系统 =====
+class DialogueSystem {
+    constructor() {
+        this.currentDialogue = null;
+        this.dialogueQueue = [];
+    }
+
+    // 显示对话
+    showDialogue(dialogue) {
+        this.currentDialogue = dialogue;
+        const modal = document.getElementById('dialogue-modal');
+        const content = document.getElementById('dialogue-content');
+
+        content.innerHTML = '';
+
+        // 角色名称和头像
+        if (dialogue.character) {
+            const charInfo = document.createElement('div');
+            charInfo.className = 'dialogue-character';
+            charInfo.innerHTML = `
+                <div class="dialogue-avatar">${dialogue.avatar || '👤'}</div>
+                <div class="dialogue-name">${dialogue.character}</div>
+            `;
+            content.appendChild(charInfo);
+        }
+
+        // 对话文本
+        const text = document.createElement('div');
+        text.className = 'dialogue-text';
+        text.textContent = dialogue.text;
+        content.appendChild(text);
+
+        // 选项
+        if (dialogue.choices && dialogue.choices.length > 0) {
+            const choicesDiv = document.createElement('div');
+            choicesDiv.className = 'dialogue-choices';
+
+            dialogue.choices.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'dialogue-choice-btn';
+                btn.textContent = choice.text;
+                btn.onclick = () => this.selectChoice(choice);
+                choicesDiv.appendChild(btn);
+            });
+
+            content.appendChild(choicesDiv);
+        } else {
+            // 继续按钮
+            const continueBtn = document.createElement('button');
+            continueBtn.className = 'dialogue-continue-btn';
+            continueBtn.textContent = '继续';
+            continueBtn.onclick = () => this.closeDialogue();
+            content.appendChild(continueBtn);
+        }
+
+        modal.classList.add('active');
+    }
+
+    // 选择对话选项
+    selectChoice(choice) {
+        // 执行选择的效果
+        if (choice.effect) {
+            choice.effect(gameState);
+        }
+
+        // 显示下一个对话或关闭
+        if (choice.next) {
+            this.showDialogue(choice.next);
+        } else {
+            this.closeDialogue();
+        }
+    }
+
+    // 关闭对话
+    closeDialogue() {
+        document.getElementById('dialogue-modal').classList.remove('active');
+        this.currentDialogue = null;
+
+        // 如果有队列中的对话，显示下一个
+        if (this.dialogueQueue.length > 0) {
+            const next = this.dialogueQueue.shift();
+            setTimeout(() => this.showDialogue(next), 300);
+        } else {
+            // 对话结束，更新UI
+            updateUI();
+        }
+    }
+}
+
+const dialogueSystem = new DialogueSystem();
+
+// ===== 剧情事件数据 =====
+const storyEvents = {
+    // Day 1: 游戏开始
+    day1_morning: {
+        id: 'day1_morning',
+        trigger: { day: 1, timeslot: 'morning', auto: true },
+        dialogue: {
+            character: '旁白',
+            avatar: '📱',
+            text: '2045年，新东京。你醒来时，MindLink设备传来故障警报。这个连接你大脑的装置，最近总是不太稳定...',
+            choices: [
+                {
+                    text: '检查设备',
+                    effect: (state) => { state.flags.tutorial_complete = true; },
+                    next: {
+                        character: '系统',
+                        avatar: '⚙️',
+                        text: '检测到未知波动...同步率异常...已重启设备。\n\n今天是距离"全球意识统合计划"启动还有100天。你是新东京学园的学生，过着普通的日常生活。'
+                    }
+                }
+            ]
+        }
+    },
+
+    day1_afternoon: {
+        id: 'day1_afternoon',
+        trigger: { day: 1, timeslot: 'afternoon', auto: true },
+        dialogue: {
+            character: '晓',
+            avatar: '🏃',
+            text: '喂！等等我！你今天看起来心不在焉的...MindLink又出问题了？我的倒是一切正常。',
+            choices: [
+                {
+                    text: '只是有点头晕',
+                    effect: (state) => { state.addRelationshipExp('akira', 10); }
+                },
+                {
+                    text: '最近新闻里的认知崩溃事件...',
+                    effect: (state) => { state.addRelationshipExp('akira', 15); state.flags.knows_crisis = true; }
+                }
+            ]
+        }
+    },
+
+    // Day 3: 能力觉醒
+    day3_night: {
+        id: 'day3_night',
+        trigger: { day: 3, timeslot: 'night', auto: true },
+        dialogue: {
+            character: '旁白',
+            avatar: '🌀',
+            text: '夜里，你做了一个奇怪的梦。你看到了扭曲的空间、破碎的记忆碎片，还有...一个陌生的声音。',
+            choices: [
+                {
+                    text: '这是哪里？',
+                    next: {
+                        character: '？？？',
+                        avatar: '👁️',
+                        text: '这是认知空间...人类内心的世界。你已经觉醒了进入这里的能力。很快，你会需要这份力量。',
+                        choices: [
+                            {
+                                text: '醒来',
+                                effect: (state) => {
+                                    state.flags.ability_awakened = true;
+                                    showNotification('你觉醒了进入认知空间的能力！', 'success');
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    },
+
+    // Day 8: 零的警告
+    day8_afternoon: {
+        id: 'day8_afternoon',
+        trigger: { day: 8, timeslot: 'afternoon', auto: true },
+        dialogue: {
+            character: '零',
+            avatar: '📚',
+            text: '终于找到你了。我观察你很久了...你也注意到了吧？认知崩溃事件在增加。而且，下一个受害者可能就在我们身边。',
+            choices: [
+                {
+                    text: '你是谁？怎么知道这些？',
+                    effect: (state) => { state.addRelationshipExp('rei', 20); },
+                    next: {
+                        character: '零',
+                        avatar: '📚',
+                        text: '我叫零，是认知调查部的...实习生。我父亲是神代教授，他一直在研究认知崩溃。时间不多了，做好准备吧。'
+                    }
+                },
+                {
+                    text: '不关我的事',
+                    effect: (state) => { state.addAttributeExp('courage', -10); }
+                }
+            ]
+        }
+    },
+
+    // Day 10: 美月崩溃（转折点）
+    day10_morning: {
+        id: 'day10_morning',
+        trigger: { day: 10, timeslot: 'morning', auto: true },
+        dialogue: {
+            character: '旁白',
+            avatar: '🚨',
+            text: '今天早上，学校传来紧急广播——你的同学美月突然昏迷，疑似认知崩溃。医院无法治疗，她的意识正在消散...',
+            choices: [
+                {
+                    text: '我能救她吗？',
+                    next: {
+                        character: '零',
+                        avatar: '📚',
+                        text: '可以，但只有5天时间。你需要进入她的认知空间，解决她的"心结"。但你必须做好准备：\n\n• 战斗力至少Lv3（面对认知防御）\n• 收集3个关于她的线索\n• 找一个可以信任的同伴\n\n时间不多了，Day 15是极限！',
+                        choices: [
+                            {
+                                text: '我会救她！',
+                                effect: (state) => {
+                                    state.mainMission.active = true;
+                                    state.flags.mission_started = true;
+                                    showNotification('任务开始：拯救美月（5天准备时间）', 'warning');
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    },
+
+    // Day 12: 晓的危机
+    day12_afternoon: {
+        id: 'day12_afternoon',
+        trigger: { day: 12, timeslot: 'afternoon', auto: true, requires: ['mission_started'] },
+        dialogue: {
+            character: '晓',
+            avatar: '🏃',
+            text: '不好了！我...我也感觉到了奇怪的波动。我可能是下一个...你能帮我吗？我害怕...',
+            choices: [
+                {
+                    text: '我会帮你！（花费1天）',
+                    effect: (state) => {
+                        state.flags.akira_crisis = true;
+                        state.flags.akira_helped = true;
+                        state.mainMission.progress.ally = 'akira';
+                        state.addRelationshipExp('akira', 50);
+                        showNotification('晓愿意在Day 15协助你！', 'success');
+                        // 强制跳过当前时段
+                        gameState.advanceTime();
+                    }
+                },
+                {
+                    text: '抱歉，我必须专注救美月',
+                    effect: (state) => {
+                        state.flags.akira_crisis = true;
+                        state.addRelationshipExp('akira', -30);
+                    }
+                }
+            ]
+        }
+    },
+
+    // Day 13: 零的危机
+    day13_afternoon: {
+        id: 'day13_afternoon',
+        trigger: { day: 13, timeslot: 'afternoon', auto: true, requires: ['mission_started'] },
+        dialogue: {
+            character: '零',
+            avatar: '📚',
+            text: '我需要你的帮助。我发现了父亲的秘密实验记录...里面有关于美月的关键情报，但我需要有人帮我潜入实验室。',
+            choices: [
+                {
+                    text: '我跟你去！（花费1天，获得线索）',
+                    effect: (state) => {
+                        if (!state.flags.akira_helped) {
+                            state.flags.rei_crisis = true;
+                            state.flags.rei_helped = true;
+                            state.mainMission.progress.ally = 'rei';
+                            state.addRelationshipExp('rei', 50);
+                            state.addClue('clue_experiment');
+                            showNotification('零愿意在Day 15协助你！获得关键线索！', 'success');
+                            // 强制跳过当前时段
+                            gameState.advanceTime();
+                        } else {
+                            showNotification('你已经答应帮助晓了，不能同时帮助零...', 'error');
+                        }
+                    }
+                },
+                {
+                    text: '这太危险了',
+                    effect: (state) => {
+                        state.flags.rei_crisis = true;
+                        state.addRelationshipExp('rei', -30);
+                    }
+                }
+            ]
+        }
+    }
+};
+
+// ===== 日常活动数据 =====
+const dailyActivities = [
     // 学习类
     {
         id: 'study_library',
         name: '图书馆学习',
-        description: '在图书馆安静地学习，提升知识。',
+        description: '提升知识，可能获得关于美月的线索。',
         icon: '📚',
         category: 'study',
         conditions: {
-            timeslots: ['morning', 'afternoon', 'night'],
-            weekdayOnly: true
+            timeslots: ['morning', 'afternoon', 'night']
         },
         effects: {
-            knowledge: 15
+            knowledge: 20
         },
-        repeatable: true
-    },
-    {
-        id: 'attend_lecture',
-        name: '参加讲座',
-        description: '参加学术讲座，大幅提升知识。',
-        icon: '🎓',
-        category: 'study',
-        conditions: {
-            timeslots: ['afternoon'],
-            minDay: 5
-        },
-        effects: {
-            knowledge: 25,
-            charm: 5
-        },
-        repeatable: true,
-        cooldown: 3
+        randomClue: { chance: 0.3, clue: 'clue_library', day: 10 }
     },
 
     // 训练类
     {
         id: 'gym_training',
-        name: '训练场锻炼',
-        description: '在训练场进行战斗训练。',
+        name: '战斗训练',
+        description: '提升战斗力，为进入认知空间做准备。',
         icon: '💪',
         category: 'training',
         conditions: {
             timeslots: ['morning', 'afternoon', 'night']
         },
         effects: {
-            combat: 20,
-            courage: 5
-        },
-        repeatable: true
+            combat: 25,
+            courage: 10
+        }
     },
+
     {
-        id: 'adventure_challenge',
-        name: '冒险挑战',
-        description: '尝试高难度的冒险活动，锻炼勇气。',
+        id: 'courage_challenge',
+        name: '勇气挑战',
+        description: '尝试高难度活动，大幅提升勇气。',
         icon: '⚔️',
         category: 'training',
         conditions: {
             timeslots: ['afternoon'],
-            minDay: 3
+            minDay: 5
         },
         effects: {
-            courage: 30,
+            courage: 35,
             combat: 10
-        },
-        repeatable: true,
-        cooldown: 2
+        }
     },
 
     // 社交类
     {
         id: 'hangout_akira',
         name: '和晓一起运动',
-        description: '和青梅竹马晓一起运动，增进关系。',
+        description: '增进与晓的关系。',
         icon: '🏃',
         category: 'social',
         conditions: {
-            timeslots: ['afternoon']
+            timeslots: ['afternoon'],
+            maxDay: 11 // Day 12后晓遇到危机
         },
         effects: {
-            courage: 5,
+            courage: 10,
             combat: 10,
-            relationships: { akira: 20 }
-        },
-        repeatable: true,
-        cooldown: 2
+            relationships: { akira: 25 }
+        }
     },
+
     {
-        id: 'chat_rei',
-        name: '和零在图书馆聊天',
-        description: '和零讨论学术问题，增进关系。',
+        id: 'talk_rei',
+        name: '和零讨论案件',
+        description: '零可能有重要情报。',
         icon: '💬',
         category: 'social',
         conditions: {
             timeslots: ['afternoon', 'night'],
-            minDay: 2
+            minDay: 8,
+            maxDay: 12
         },
         effects: {
-            knowledge: 10,
-            relationships: { rei: 20 }
+            knowledge: 15,
+            relationships: { rei: 25 }
         },
-        repeatable: true,
-        cooldown: 2
+        randomClue: { chance: 0.4, clue: 'clue_rei', day: 10 }
     },
 
-    // 打工类
+    // 调查类（Day 10+）
     {
-        id: 'part_time_cafe',
-        name: '咖啡店打工',
-        description: '在咖啡店打工，提升魅力并赚钱。',
-        icon: '☕',
-        category: 'work',
-        conditions: {
-            timeslots: ['morning', 'afternoon', 'night']
-        },
-        effects: {
-            charm: 15
-        },
-        repeatable: true
-    },
-
-    // 魅力类
-    {
-        id: 'shopping',
-        name: '购物打扮',
-        description: '购买新衣服，提升魅力。',
-        icon: '👔',
-        category: 'charm',
-        conditions: {
-            timeslots: ['afternoon']
-        },
-        effects: {
-            charm: 20
-        },
-        repeatable: true,
-        cooldown: 3
-    },
-    {
-        id: 'watch_movie',
-        name: '观看电影',
-        description: '去电影院看电影，放松心情。',
-        icon: '🎬',
-        category: 'charm',
-        conditions: {
-            timeslots: ['night']
-        },
-        effects: {
-            charm: 15,
-            knowledge: 5
-        },
-        repeatable: true
-    },
-
-    // 任务相关
-    {
-        id: 'investigate_victim',
-        name: '调查受害者',
-        description: '收集第一个受害者的情报。',
+        id: 'investigate_classroom',
+        name: '调查美月的教室',
+        description: '寻找关于美月的线索。',
         icon: '🔍',
-        category: 'mission',
+        category: 'investigation',
+        conditions: {
+            timeslots: ['afternoon'],
+            minDay: 10,
+            requires: ['mission_started']
+        },
+        effects: {
+            knowledge: 10
+        },
+        guaranteedClue: 'clue_classroom'
+    },
+
+    {
+        id: 'investigate_rooftop',
+        name: '调查天台',
+        description: '美月经常去的地方，可能有线索。',
+        icon: '🏢',
+        category: 'investigation',
         conditions: {
             timeslots: ['afternoon', 'night'],
-            minDay: 10
+            minDay: 11,
+            requires: ['mission_started']
         },
         effects: {
-            knowledge: 10,
             courage: 10
         },
-        onComplete: (gameState) => {
-            gameState.missions[0].progress++;
-        },
-        repeatable: false
-    },
-    {
-        id: 'explore_cognitive_space',
-        name: '认知空间探索',
-        description: '进入练习用的认知空间。',
-        icon: '🌀',
-        category: 'mission',
-        conditions: {
-            timeslots: ['night'],
-            minDay: 12,
-            minProgress: 2
-        },
-        effects: {
-            combat: 30,
-            courage: 15
-        },
-        onComplete: (gameState) => {
-            gameState.missions[0].progress++;
-        },
-        repeatable: true,
-        cooldown: 2
+        guaranteedClue: 'clue_rooftop'
     },
 
     // 休息
     {
         id: 'rest',
-        name: '早点睡觉',
-        description: '早点休息，恢复精力。',
+        name: '休息',
+        description: '恢复精力，少量提升所有属性。',
         icon: '😴',
         category: 'rest',
         conditions: {
@@ -319,39 +578,64 @@ const eventsData = [
             courage: 5,
             charm: 5,
             combat: 5
-        },
-        repeatable: true
+        }
     }
 ];
 
-// ===== 事件冷却管理 =====
-let eventCooldowns = {};
+// ===== 事件检查和触发 =====
+function checkDayTriggers() {
+    const day = gameState.currentDay;
+    const timeslot = gameState.currentTimeslot;
 
-function isEventAvailable(event) {
+    // 检查是否有自动触发的剧情
+    for (const [key, event] of Object.entries(storyEvents)) {
+        if (event.trigger.auto &&
+            event.trigger.day === day &&
+            event.trigger.timeslot === timeslot &&
+            !gameState.completedEvents.includes(event.id)) {
+
+            // 检查前置条件
+            if (event.trigger.requires) {
+                const allMet = event.trigger.requires.every(flag => gameState.flags[flag]);
+                if (!allMet) continue;
+            }
+
+            gameState.completedEvents.push(event.id);
+            setTimeout(() => dialogueSystem.showDialogue(event.dialogue), 500);
+            return;
+        }
+    }
+
+    // Day 15: 最终任务
+    if (day === 15 && timeslot === 'night' && !gameState.flags.mission_complete) {
+        startFinalMission();
+    }
+}
+
+// ===== 检查活动是否可用 =====
+function isActivityAvailable(activity) {
     // 检查时间段
-    if (event.conditions.timeslots &&
-        !event.conditions.timeslots.includes(gameState.currentTimeslot)) {
+    if (activity.conditions.timeslots &&
+        !activity.conditions.timeslots.includes(gameState.currentTimeslot)) {
         return false;
     }
 
-    // 检查最小天数
-    if (event.conditions.minDay && gameState.currentDay < event.conditions.minDay) {
+    // 检查最小/最大天数
+    if (activity.conditions.minDay && gameState.currentDay < activity.conditions.minDay) {
+        return false;
+    }
+    if (activity.conditions.maxDay && gameState.currentDay > activity.conditions.maxDay) {
         return false;
     }
 
-    // 检查任务进度
-    if (event.conditions.minProgress &&
-        gameState.missions[0].progress < event.conditions.minProgress) {
-        return false;
+    // 检查前置标记
+    if (activity.conditions.requires) {
+        const allMet = activity.conditions.requires.every(flag => gameState.flags[flag]);
+        if (!allMet) return false;
     }
 
-    // 检查冷却
-    if (eventCooldowns[event.id] && eventCooldowns[event.id] > 0) {
-        return false;
-    }
-
-    // 检查是否可重复
-    if (!event.repeatable && gameState.completedActivities.includes(event.id)) {
+    // 检查是否已经获得线索（避免重复）
+    if (activity.guaranteedClue && gameState.flags[activity.guaranteedClue]) {
         return false;
     }
 
@@ -379,10 +663,13 @@ function updateUI() {
     updateRelationships();
 
     // 更新任务
-    updateMissions();
+    updateMission();
 
-    // 更新事件列表
-    updateEvents();
+    // 更新活动列表
+    updateActivities();
+
+    // 检查剧情触发
+    checkDayTriggers();
 }
 
 function updateAttributes() {
@@ -392,7 +679,7 @@ function updateAttributes() {
 
         document.getElementById(`${attr}-bar`).style.width = `${percentage}%`;
         document.getElementById(`${attr}-value`).textContent =
-            data.level < 10 ? `Lv ${data.level} (${data.exp}/${data.expToNext})` : `Lv ${data.level} (MAX)`;
+            data.level < 10 ? `Lv ${data.level}` : `Lv ${data.level} (MAX)`;
     });
 }
 
@@ -411,63 +698,82 @@ function updateRelationships() {
     });
 }
 
-function updateMissions() {
-    const container = document.getElementById('missions-container');
-    container.innerHTML = '';
+function updateMission() {
+    const container = document.getElementById('mission-container');
 
-    gameState.missions.forEach(mission => {
-        const div = document.createElement('div');
-        div.className = 'mission-item';
-        div.innerHTML = `
-            <div class="mission-name">${mission.name}</div>
-            <div>进度: ${mission.progress}/${mission.required}</div>
-            <div class="mission-deadline">截止: Day ${mission.deadline}</div>
-        `;
-        container.appendChild(div);
-    });
+    if (!gameState.mainMission.active) {
+        container.innerHTML = '<p style="color: #999;">暂无紧急任务</p>';
+        return;
+    }
+
+    const mission = gameState.mainMission;
+    const daysLeft = mission.deadline - gameState.currentDay;
+    const req = mission.requirements;
+    const prog = mission.progress;
+
+    container.innerHTML = `
+        <div class="mission-active">
+            <div class="mission-title">${mission.name}</div>
+            <div class="mission-deadline ${daysLeft <= 2 ? 'urgent' : ''}">
+                剩余时间: ${daysLeft} 天
+            </div>
+            <div class="mission-requirements">
+                <div>战斗力: Lv${prog.combat}/${req.combat} ${prog.combat >= req.combat ? '✓' : '✗'}</div>
+                <div>线索: ${prog.clues}/${req.clues} ${prog.clues >= req.clues ? '✓' : '✗'}</div>
+                <div>同伴: ${prog.ally ? '✓' : '✗'} ${prog.ally ? `(${gameState.relationships[prog.ally].name})` : ''}</div>
+            </div>
+            <div class="mission-preparedness">
+                <div class="preparedness-label">准备度: ${gameState.preparedness}%</div>
+                <div class="preparedness-bar">
+                    <div class="preparedness-fill" style="width: ${gameState.preparedness}%"></div>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
-function updateEvents() {
+function updateActivities() {
     const container = document.getElementById('events-container');
     container.innerHTML = '';
 
-    const availableEvents = eventsData.filter(event => isEventAvailable(event));
+    const availableActivities = dailyActivities.filter(activity => isActivityAvailable(activity));
 
-    if (availableEvents.length === 0) {
+    if (availableActivities.length === 0) {
         container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #999;">当前时间段没有可用的活动</p>';
+        return;
     }
 
-    availableEvents.forEach(event => {
-        const card = createEventCard(event);
+    availableActivities.forEach(activity => {
+        const card = createActivityCard(activity);
         container.appendChild(card);
     });
 }
 
-function createEventCard(event) {
+function createActivityCard(activity) {
     const card = document.createElement('div');
     card.className = 'event-card';
 
     // 创建奖励标签
     let rewardsHTML = '';
-    if (event.effects) {
+    if (activity.effects) {
         rewardsHTML = '<div class="event-rewards">';
 
-        if (event.effects.knowledge) {
-            rewardsHTML += `<span class="reward-tag knowledge">+${event.effects.knowledge} 知识</span>`;
+        if (activity.effects.knowledge) {
+            rewardsHTML += `<span class="reward-tag knowledge">+${activity.effects.knowledge} 知识</span>`;
         }
-        if (event.effects.courage) {
-            rewardsHTML += `<span class="reward-tag courage">+${event.effects.courage} 勇气</span>`;
+        if (activity.effects.courage) {
+            rewardsHTML += `<span class="reward-tag courage">+${activity.effects.courage} 勇气</span>`;
         }
-        if (event.effects.charm) {
-            rewardsHTML += `<span class="reward-tag charm">+${event.effects.charm} 魅力</span>`;
+        if (activity.effects.charm) {
+            rewardsHTML += `<span class="reward-tag charm">+${activity.effects.charm} 魅力</span>`;
         }
-        if (event.effects.combat) {
-            rewardsHTML += `<span class="reward-tag combat">+${event.effects.combat} 战斗</span>`;
+        if (activity.effects.combat) {
+            rewardsHTML += `<span class="reward-tag combat">+${activity.effects.combat} 战斗</span>`;
         }
-        if (event.effects.relationships) {
-            Object.entries(event.effects.relationships).forEach(([char, value]) => {
+        if (activity.effects.relationships) {
+            Object.entries(activity.effects.relationships).forEach(([char, value]) => {
                 const charName = gameState.relationships[char]?.name || char;
-                rewardsHTML += `<span class="reward-tag relationship">+${value} ${charName}</span>`;
+                rewardsHTML += `<span class="reward-tag relationship">+${charName}</span>`;
             });
         }
 
@@ -475,63 +781,63 @@ function createEventCard(event) {
     }
 
     card.innerHTML = `
-        <div class="event-icon">${event.icon}</div>
-        <div class="event-name">${event.name}</div>
-        <div class="event-description">${event.description}</div>
+        <div class="event-icon">${activity.icon}</div>
+        <div class="event-name">${activity.name}</div>
+        <div class="event-description">${activity.description}</div>
         ${rewardsHTML}
     `;
 
-    card.addEventListener('click', () => executeEvent(event));
+    card.addEventListener('click', () => executeActivity(activity));
 
     return card;
 }
 
-// ===== 事件执行 =====
-function executeEvent(event) {
-    // 应用效果
+// ===== 执行活动 =====
+function executeActivity(activity) {
     const results = [];
 
-    if (event.effects.knowledge) {
-        gameState.addAttributeExp('knowledge', event.effects.knowledge);
-        results.push(`知识 +${event.effects.knowledge}`);
+    // 应用属性效果
+    if (activity.effects.knowledge) {
+        gameState.addAttributeExp('knowledge', activity.effects.knowledge);
+        results.push(`知识 +${activity.effects.knowledge}`);
     }
-    if (event.effects.courage) {
-        gameState.addAttributeExp('courage', event.effects.courage);
-        results.push(`勇气 +${event.effects.courage}`);
+    if (activity.effects.courage) {
+        gameState.addAttributeExp('courage', activity.effects.courage);
+        results.push(`勇气 +${activity.effects.courage}`);
     }
-    if (event.effects.charm) {
-        gameState.addAttributeExp('charm', event.effects.charm);
-        results.push(`魅力 +${event.effects.charm}`);
+    if (activity.effects.charm) {
+        gameState.addAttributeExp('charm', activity.effects.charm);
+        results.push(`魅力 +${activity.effects.charm}`);
     }
-    if (event.effects.combat) {
-        gameState.addAttributeExp('combat', event.effects.combat);
-        results.push(`战斗 +${event.effects.combat}`);
+    if (activity.effects.combat) {
+        gameState.addAttributeExp('combat', activity.effects.combat);
+        results.push(`战斗力 +${activity.effects.combat}`);
     }
 
     // 关系变化
-    if (event.effects.relationships) {
-        Object.entries(event.effects.relationships).forEach(([char, value]) => {
+    if (activity.effects.relationships) {
+        Object.entries(activity.effects.relationships).forEach(([char, value]) => {
             gameState.addRelationshipExp(char, value);
             results.push(`${gameState.relationships[char].name} 好感度 +${value}`);
         });
     }
 
-    // 执行回调
-    if (event.onComplete) {
-        event.onComplete(gameState);
+    // 线索获取
+    if (activity.guaranteedClue && !gameState.flags[activity.guaranteedClue]) {
+        gameState.addClue(activity.guaranteedClue);
+        results.push('🔍 获得关键线索！');
+    } else if (activity.randomClue && gameState.currentDay >= activity.randomClue.day) {
+        if (Math.random() < activity.randomClue.chance && !gameState.flags[activity.randomClue.clue]) {
+            gameState.addClue(activity.randomClue.clue);
+            results.push('🔍 意外发现了线索！');
+        }
     }
 
     // 记录活动
-    gameState.completedActivities.push(event.id);
-    gameState.todayActivities.push(event.name);
-
-    // 设置冷却
-    if (event.cooldown) {
-        eventCooldowns[event.id] = event.cooldown;
-    }
+    gameState.todayActivities.push(activity.name);
 
     // 显示结果
-    showEventResult(event, results);
+    showActivityResult(activity, results);
 
     // 推进时间
     gameState.advanceTime();
@@ -539,22 +845,22 @@ function executeEvent(event) {
     // 更新UI
     updateUI();
 
-    // 检查是否是夜晚结束
-    if (gameState.currentTimeslot === 'morning') {
+    // 检查是否进入新的一天
+    if (gameState.currentTimeslot === 'morning' && gameState.currentDay <= gameState.maxDay) {
         showDaySummary();
     }
 
     // 检查游戏是否结束
     if (gameState.isGameOver()) {
-        showGameOver();
+        // 结局逻辑将在最终任务后触发
     }
 }
 
-// ===== 弹窗显示 =====
-function showEventResult(event, results) {
+// ===== 显示活动结果 =====
+function showActivityResult(activity, results) {
     const modal = document.getElementById('result-modal');
-    document.getElementById('result-title').textContent = event.name;
-    document.getElementById('result-description').textContent = event.description;
+    document.getElementById('result-title').textContent = activity.name;
+    document.getElementById('result-description').textContent = activity.description;
 
     const rewardsContainer = document.getElementById('result-rewards');
     rewardsContainer.innerHTML = '';
@@ -575,13 +881,21 @@ function showDaySummary() {
     // 今日活动
     const activitiesList = document.getElementById('summary-activities');
     activitiesList.innerHTML = '';
-    gameState.todayActivities.forEach(activity => {
-        const li = document.createElement('li');
-        li.textContent = activity;
-        activitiesList.appendChild(li);
-    });
 
-    // 属性变化（简化显示）
+    if (gameState.todayActivities.length === 0) {
+        const li = document.createElement('li');
+        li.textContent = '（剧情日）';
+        li.style.color = '#999';
+        activitiesList.appendChild(li);
+    } else {
+        gameState.todayActivities.forEach(activity => {
+            const li = document.createElement('li');
+            li.textContent = activity;
+            activitiesList.appendChild(li);
+        });
+    }
+
+    // 属性变化
     const attrsContainer = document.getElementById('summary-attributes');
     attrsContainer.innerHTML = '';
     ['knowledge', 'courage', 'charm', 'combat'].forEach(attr => {
@@ -589,50 +903,136 @@ function showDaySummary() {
         const div = document.createElement('div');
         div.className = 'attr-change positive';
         div.innerHTML = `
-            <div>${attr}</div>
-            <div>Lv ${data.level}</div>
+            <div class="attr-name">${attr}</div>
+            <div class="attr-value">Lv ${data.level}</div>
         `;
         attrsContainer.appendChild(div);
-    });
-
-    // 减少冷却
-    Object.keys(eventCooldowns).forEach(id => {
-        eventCooldowns[id]--;
-        if (eventCooldowns[id] <= 0) {
-            delete eventCooldowns[id];
-        }
     });
 
     modal.classList.add('active');
 }
 
-function showGameOver() {
-    const modal = document.getElementById('game-over-modal');
+// ===== 最终任务 =====
+function startFinalMission() {
+    const req = gameState.mainMission.requirements;
+    const prog = gameState.mainMission.progress;
 
-    // 最终属性
-    const attrsContainer = document.getElementById('final-attributes');
-    attrsContainer.innerHTML = '';
-    ['knowledge', 'courage', 'charm', 'combat'].forEach(attr => {
-        const data = gameState.attributes[attr];
-        const div = document.createElement('div');
-        div.className = 'final-attr';
-        div.innerHTML = `
-            <span class="final-attr-name">${attr}</span>
-            <span class="final-attr-value">Lv ${data.level}</span>
-        `;
-        attrsContainer.appendChild(div);
-    });
+    // 检查准备度
+    const combatReady = prog.combat >= req.combat;
+    const cluesReady = prog.clues >= req.clues;
+    const allyReady = prog.ally !== null;
 
-    // 活动统计
-    document.getElementById('final-activity-count').textContent =
-        `共完成 ${gameState.completedActivities.length} 个活动`;
+    let dialogue = {
+        character: '旁白',
+        avatar: '🌀',
+        text: '',
+        choices: []
+    };
 
-    modal.classList.add('active');
+    if (combatReady && cluesReady && allyReady) {
+        // 完美结局
+        dialogue.text = `你已经做好了充分的准备。战斗力Lv${prog.combat}，掌握了${prog.clues}条关键线索，${gameState.relationships[prog.ally].name}在你身边。\n\n你们一起进入了美月的认知空间...`;
+        dialogue.choices = [{
+            text: '进入认知空间',
+            next: showPerfectEnding
+        }];
+    } else if (combatReady && cluesReady) {
+        // 成功结局（缺少同伴）
+        dialogue.text = `你的战斗力和线索都足够了，但没有同伴协助。这将是一场艰难的战斗...`;
+        dialogue.choices = [{
+            text: '独自进入',
+            next: showGoodEnding
+        }];
+    } else if (combatReady || cluesReady) {
+        // 勉强结局
+        dialogue.text = `你的准备不够充分...${!combatReady ? '战斗力不足' : ''}${!cluesReady ? '线索不够' : ''}${!allyReady ? '没有同伴' : ''}。但时间已经不多了，你必须尝试。`;
+        dialogue.choices = [{
+            text: '强行进入',
+            next: showNormalEnding
+        }];
+    } else {
+        // 失败结局
+        dialogue.text = `时间到了，但你完全没有准备好。战斗力不足，线索也不够，更没有可以信任的同伴...\n\n你还是冲进了美月的认知空间，但结果...`;
+        dialogue.choices = [{
+            text: '...',
+            next: showBadEnding
+        }];
+    }
+
+    dialogueSystem.showDialogue(dialogue);
+}
+
+function showPerfectEnding() {
+    return {
+        character: '结局',
+        avatar: '✨',
+        text: `【完美结局】\n\n凭借充足的准备和${gameState.relationships[gameState.mainMission.progress.ally].name}的帮助，你成功解开了美月心中的结。她的认知空间恢复稳定，意识重新归来。\n\n美月醒来后，紧紧抱住了你。"谢谢你...救了我。"\n\n但这只是开始。认知崩溃事件背后的真相，还等待着你去揭开...\n\n【原型结束 - 感谢游玩！】`,
+        choices: [{
+            text: '重新开始',
+            effect: () => {
+                gameState.flags.mission_complete = true;
+                setTimeout(() => restartGame(), 2000);
+            }
+        }]
+    };
+}
+
+function showGoodEnding() {
+    return {
+        character: '结局',
+        avatar: '⭐',
+        text: `【成功结局】\n\n虽然独自作战很艰难，但你最终还是救回了美月。她的意识恢复了，但过程中你也受了不轻的伤...\n\n"你为什么要这么做？"美月问。\n"因为...我不想失去任何人。"你回答。\n\n认知崩溃事件的谜团还没有解开，但至少，你救下了一个人。\n\n【原型结束 - 感谢游玩！】`,
+        choices: [{
+            text: '重新开始',
+            effect: () => {
+                gameState.flags.mission_complete = true;
+                setTimeout(() => restartGame(), 2000);
+            }
+        }]
+    };
+}
+
+function showNormalEnding() {
+    return {
+        character: '结局',
+        avatar: '💔',
+        text: `【勉强结局】\n\n准备不足的你，在认知空间中苦战。美月的心结比想象中更深，你差点迷失在扭曲的空间里...\n\n最后关头，美月自己的意志帮助了你。她醒来了，但记忆出现了缺失。\n\n"你是...谁？"她看着你，眼神茫然。\n\n你救下了她的生命，但或许...失去了更重要的东西。\n\n【原型结束 - 感谢游玩！】`,
+        choices: [{
+            text: '重新开始',
+            effect: () => {
+                gameState.flags.mission_complete = true;
+                setTimeout(() => restartGame(), 2000);
+            }
+        }]
+    };
+}
+
+function showBadEnding() {
+    return {
+        character: '结局',
+        avatar: '💀',
+        text: `【失败结局】\n\n完全没有准备的你，在认知空间中迷失了方向。美月的心结太过复杂，你根本无法理解，更无法解开...\n\n当你被强制退出时，美月已经陷入了永久昏迷。\n\n"我早就警告过你了。"零冷冷地说，"时间管理很重要。你浪费了太多时间。"\n\n你失败了。\n\n【原型结束 - 请重新尝试】`,
+        choices: [{
+            text: '重新开始',
+            effect: () => {
+                gameState.flags.mission_complete = true;
+                setTimeout(() => restartGame(), 2000);
+            }
+        }]
+    };
+}
+
+function restartGame() {
+    gameState = new GameState();
+    document.getElementById('dialogue-modal').classList.remove('active');
+    updateUI();
 }
 
 function showNotification(message, type = 'info') {
-    // 简单的通知实现（可以后续美化）
+    // 简单的通知实现
     console.log(`[${type.toUpperCase()}] ${message}`);
+
+    // TODO: 可以添加更好的视觉通知
 }
 
 // ===== 事件监听 =====
@@ -644,16 +1044,10 @@ document.getElementById('close-summary-btn').addEventListener('click', () => {
     document.getElementById('day-end-modal').classList.remove('active');
 });
 
-document.getElementById('restart-btn').addEventListener('click', () => {
-    gameState = new GameState();
-    eventCooldowns = {};
-    document.getElementById('game-over-modal').classList.remove('active');
-    updateUI();
-});
-
 // ===== 初始化 =====
 document.addEventListener('DOMContentLoaded', () => {
     updateUI();
-    console.log('游戏已启动！');
-    console.log('这是Day 1-15的原型，测试时间管理和选择系统。');
+    console.log('=== MindLink - 认知空间 原型 v2.0 ===');
+    console.log('Day 1-15 完整剧情体验');
+    console.log('核心机制：时间压力 + 剧情选择 + 任务准备');
 });

@@ -561,3 +561,197 @@ body {
         font-size: 2.5em;
     }
 }
+
+/* ===== 新增样式：对话框系统 ===== */
+.dialogue-box {
+    min-height: 300px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    position: relative;
+}
+
+.dialogue-character {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid rgba(255,255,255,0.3);
+}
+
+.dialogue-avatar {
+    font-size: 3em;
+    width: 80px;
+    height: 80px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+}
+
+.dialogue-name {
+    font-size: 1.8em;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.dialogue-text {
+    font-size: 1.2em;
+    line-height: 1.8;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    white-space: pre-wrap;
+    min-height: 100px;
+}
+
+.dialogue-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dialogue-choice-btn {
+    padding: 15px 25px;
+    background: rgba(255,255,255,0.9);
+    color: #333;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+.dialogue-choice-btn:hover {
+    background: white;
+    transform: translateX(10px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.dialogue-continue-btn {
+    padding: 15px 40px;
+    background: rgba(255,255,255,0.9);
+    color: #333;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: block;
+    margin: 0 auto;
+}
+
+.dialogue-continue-btn:hover {
+    background: white;
+    transform: scale(1.05);
+}
+
+/* ===== 新增样式：任务显示 ===== */
+.mission-active {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+    color: white;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(255,107,107,0.3);
+}
+
+.mission-title {
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+.mission-deadline {
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.mission-deadline.urgent {
+    background: rgba(255,255,255,0.3);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.mission-requirements {
+    margin-bottom: 12px;
+    font-size: 0.95em;
+    line-height: 1.8;
+}
+
+.mission-requirements div {
+    padding: 4px 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 6px;
+    margin-bottom: 5px;
+}
+
+.mission-preparedness {
+    margin-top: 12px;
+}
+
+.preparedness-label {
+    font-size: 1em;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.preparedness-bar {
+    width: 100%;
+    height: 25px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
+}
+
+.preparedness-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6bcf7f, #4caf50);
+    transition: width 0.5s ease;
+    border-radius: 15px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 10px;
+}
+
+.preparedness-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
