@@ -118,7 +118,7 @@ const eventsData = [
         icon: '📚',
         category: 'study',
         conditions: {
-            timeslots: ['afternoon', 'night'],
+            timeslots: ['morning', 'afternoon', 'night'],
             weekdayOnly: true
         },
         effects: {
@@ -152,7 +152,7 @@ const eventsData = [
         icon: '💪',
         category: 'training',
         conditions: {
-            timeslots: ['afternoon', 'night']
+            timeslots: ['morning', 'afternoon', 'night']
         },
         effects: {
             combat: 20,
@@ -222,7 +222,7 @@ const eventsData = [
         icon: '☕',
         category: 'work',
         conditions: {
-            timeslots: ['afternoon', 'night']
+            timeslots: ['morning', 'afternoon', 'night']
         },
         effects: {
             charm: 15
