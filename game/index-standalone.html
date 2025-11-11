@@ -1,0 +1,1905 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindLink - 认知空间</title>
+    <style>
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* Color Palette - Cyberpunk/Sci-fi Theme */
+    --primary-bg: #0a0e27;
+    --secondary-bg: #151932;
+    --accent-blue: #00d4ff;
+    --accent-purple: #9d4edd;
+    --accent-pink: #ff006e;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --border-color: #2d3561;
+    --success-color: #06ffa5;
+    --warning-color: #ffbe0b;
+    --danger-color: #ff006e;
+
+    /* Pixel Font */
+    --pixel-font: 'Courier New', monospace;
+}
+
+body {
+    font-family: var(--pixel-font);
+    background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+#game-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    height: 100vh;
+    position: relative;
+    background-color: var(--primary-bg);
+    box-shadow: 0 0 50px rgba(0, 212, 255, 0.3);
+}
+
+/* Screen Management */
+.screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+}
+
+.screen.active {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Loading Screen */
+#loading-screen {
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, var(--primary-bg), var(--secondary-bg), var(--primary-bg));
+    animation: gradientShift 10s ease infinite;
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.loading-content {
+    text-align: center;
+    padding: 40px;
+}
+
+.pixel-title {
+    font-size: 4rem;
+    font-weight: bold;
+    color: var(--accent-blue);
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5),
+                 0 0 40px rgba(157, 78, 221, 0.3);
+    margin-bottom: 20px;
+    animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+    0%, 100% { text-shadow: 0 0 20px rgba(0, 212, 255, 0.5); }
+    50% { text-shadow: 0 0 30px rgba(0, 212, 255, 0.8), 0 0 50px rgba(157, 78, 221, 0.5); }
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    margin-bottom: 40px;
+    letter-spacing: 2px;
+}
+
+.loading-bar {
+    width: 300px;
+    height: 10px;
+    background-color: var(--border-color);
+    border: 2px solid var(--accent-blue);
+    margin: 30px auto;
+    position: relative;
+    overflow: hidden;
+}
+
+.loading-progress {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
+    transition: width 0.3s ease;
+}
+
+.pixel-button {
+    background-color: var(--secondary-bg);
+    color: var(--accent-blue);
+    border: 2px solid var(--accent-blue);
+    padding: 12px 32px;
+    font-size: 1rem;
+    font-family: var(--pixel-font);
+    cursor: pointer;
+    margin: 10px;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.pixel-button:hover {
+    background-color: var(--accent-blue);
+    color: var(--primary-bg);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+.pixel-button:active {
+    transform: translateY(0);
+}
+
+/* Main Game Screen */
+#main-screen {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Top Bar */
+.top-bar {
+    background-color: var(--secondary-bg);
+    border-bottom: 2px solid var(--border-color);
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.date-display {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.day-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.day-number {
+    color: var(--accent-blue);
+    font-size: 2rem;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+}
+
+.time-label {
+    color: var(--accent-purple);
+    font-size: 1rem;
+    padding: 4px 12px;
+    border: 1px solid var(--accent-purple);
+    border-radius: 4px;
+}
+
+.attributes-display {
+    display: flex;
+    gap: 20px;
+}
+
+.attribute {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 1.1rem;
+}
+
+.attr-icon {
+    font-size: 1.5rem;
+}
+
+.icon-button {
+    background: none;
+    border: 2px solid var(--accent-blue);
+    color: var(--accent-blue);
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.icon-button:hover {
+    background-color: var(--accent-blue);
+    color: var(--primary-bg);
+}
+
+/* Main Content Area */
+.main-content {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+}
+
+.view {
+    display: none;
+    padding: 20px;
+    height: 100%;
+}
+
+.view.active {
+    display: block;
+}
+
+.view-title {
+    color: var(--accent-blue);
+    font-size: 2rem;
+    margin-bottom: 20px;
+    text-align: center;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+/* Activity View */
+.activity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    padding: 20px 0;
+}
+
+.activity-card {
+    background-color: var(--secondary-bg);
+    border: 2px solid var(--border-color);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.activity-card:hover {
+    border-color: var(--accent-blue);
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0, 212, 255, 0.3);
+}
+
+.activity-card.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.activity-card.locked:hover {
+    transform: none;
+    border-color: var(--border-color);
+}
+
+.activity-title {
+    color: var(--accent-blue);
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.activity-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 10px;
+}
+
+.activity-effects {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.effect-tag {
+    background-color: var(--primary-bg);
+    color: var(--success-color);
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    border-radius: 3px;
+    border: 1px solid var(--success-color);
+}
+
+/* Character Relationship View */
+.character-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
+}
+
+.character-card {
+    background-color: var(--secondary-bg);
+    border: 2px solid var(--border-color);
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.character-card:hover {
+    border-color: var(--accent-purple);
+    box-shadow: 0 0 20px rgba(157, 78, 221, 0.3);
+}
+
+.character-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.character-avatar {
+    width: 60px;
+    height: 60px;
+    background-color: var(--primary-bg);
+    border: 2px solid var(--accent-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+}
+
+.character-info {
+    flex: 1;
+}
+
+.character-name {
+    color: var(--accent-blue);
+    font-size: 1.3rem;
+    margin-bottom: 5px;
+}
+
+.character-title {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.relationship-bar {
+    background-color: var(--primary-bg);
+    height: 20px;
+    border: 1px solid var(--border-color);
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.relationship-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-purple), var(--accent-pink));
+    transition: width 0.5s ease;
+}
+
+.relationship-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Calendar View */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.calendar-day {
+    background-color: var(--secondary-bg);
+    border: 2px solid var(--border-color);
+    padding: 15px;
+    text-align: center;
+    min-height: 80px;
+}
+
+.calendar-day.current {
+    border-color: var(--accent-blue);
+    background-color: rgba(0, 212, 255, 0.1);
+}
+
+.calendar-day.past {
+    opacity: 0.5;
+}
+
+.day-num {
+    font-size: 1.5rem;
+    color: var(--accent-blue);
+    margin-bottom: 5px;
+}
+
+.deadline-list {
+    background-color: var(--secondary-bg);
+    padding: 20px;
+    border: 2px solid var(--border-color);
+}
+
+.deadline-list h3 {
+    color: var(--accent-pink);
+    margin-bottom: 15px;
+}
+
+.deadline-list ul {
+    list-style: none;
+}
+
+.deadline-list li {
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: var(--primary-bg);
+    border-left: 3px solid var(--danger-color);
+}
+
+/* Battle View */
+.battle-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.enemy-area {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.enemy-sprite {
+    width: 150px;
+    height: 150px;
+    background-color: var(--danger-color);
+    margin: 0 auto 20px;
+    border: 3px solid var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    animation: enemyFloat 2s ease-in-out infinite;
+}
+
+@keyframes enemyFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.enemy-info, .player-info {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.enemy-name, .player-name {
+    color: var(--accent-blue);
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.hp-bar {
+    background-color: var(--primary-bg);
+    height: 30px;
+    border: 2px solid var(--border-color);
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--danger-color), var(--warning-color));
+    transition: width 0.5s ease;
+}
+
+.hp-fill.player-hp {
+    background: linear-gradient(90deg, var(--success-color), var(--accent-blue));
+}
+
+.hp-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.battle-log {
+    background-color: var(--secondary-bg);
+    border: 2px solid var(--border-color);
+    padding: 20px;
+    height: 150px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.battle-log p {
+    margin-bottom: 10px;
+    color: var(--text-secondary);
+}
+
+.battle-log p:last-child {
+    color: var(--accent-blue);
+}
+
+.battle-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.action-button {
+    background-color: var(--secondary-bg);
+    border: 2px solid var(--accent-blue);
+    color: var(--accent-blue);
+    padding: 20px;
+    font-family: var(--pixel-font);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.action-button:hover {
+    background-color: var(--accent-blue);
+    color: var(--primary-bg);
+    transform: scale(1.05);
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+    background-color: var(--secondary-bg);
+    border-top: 2px solid var(--border-color);
+    padding: 10px;
+    display: flex;
+    justify-content: space-around;
+}
+
+.nav-button {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--pixel-font);
+}
+
+.nav-button:hover {
+    color: var(--accent-blue);
+}
+
+.nav-button.active {
+    color: var(--accent-blue);
+    border-bottom: 2px solid var(--accent-blue);
+}
+
+.nav-icon {
+    font-size: 1.5rem;
+}
+
+.nav-label {
+    font-size: 0.9rem;
+}
+
+/* Menu Overlay */
+.overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(10, 14, 39, 0.95);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.overlay.active {
+    display: flex;
+}
+
+.menu-panel {
+    background-color: var(--secondary-bg);
+    border: 3px solid var(--accent-blue);
+    padding: 40px;
+    min-width: 400px;
+    box-shadow: 0 0 50px rgba(0, 212, 255, 0.5);
+}
+
+.menu-panel h2 {
+    color: var(--accent-blue);
+    font-size: 2rem;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.menu-item {
+    width: 100%;
+    background-color: var(--primary-bg);
+    border: 2px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 15px;
+    margin-bottom: 15px;
+    font-family: var(--pixel-font);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+.menu-item:hover {
+    border-color: var(--accent-blue);
+    background-color: var(--secondary-bg);
+    transform: translateX(10px);
+}
+
+/* Notification Toast */
+.notification {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--accent-blue);
+    color: var(--primary-bg);
+    padding: 15px 30px;
+    border-radius: 5px;
+    font-size: 1rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 2000;
+}
+
+.notification.show {
+    opacity: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .pixel-title {
+        font-size: 2.5rem;
+    }
+
+    .top-bar {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .attributes-display {
+        gap: 10px;
+    }
+
+    .activity-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .character-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .calendar-grid {
+        grid-template-columns: repeat(7, 1fr);
+        gap: 5px;
+    }
+
+    .calendar-day {
+        padding: 8px;
+        min-height: 60px;
+        font-size: 0.8rem;
+    }
+
+    .battle-actions {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--primary-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--accent-blue);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-purple);
+}
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="screen active">
+            <div class="loading-content">
+                <h1 class="pixel-title">MindLink</h1>
+                <p class="subtitle">认知空间 / Cognitive Space</p>
+                <div class="loading-bar">
+                    <div class="loading-progress"></div>
+                </div>
+                <button id="start-game" class="pixel-button" style="display: none;">开始游戏</button>
+                <button id="load-game" class="pixel-button" style="display: none;">继续游戏</button>
+            </div>
+        </div>
+
+        <!-- Main Game Screen -->
+        <div id="main-screen" class="screen">
+            <!-- Top UI Bar -->
+            <div class="top-bar">
+                <div class="date-display">
+                    <span class="day-label">Day</span>
+                    <span id="current-day" class="day-number">1</span>
+                    <span id="time-period" class="time-label">早晨</span>
+                </div>
+                <div class="attributes-display">
+                    <div class="attribute" title="知识">
+                        <span class="attr-icon">📚</span>
+                        <span id="knowledge-value">1</span>
+                    </div>
+                    <div class="attribute" title="勇气">
+                        <span class="attr-icon">⚔️</span>
+                        <span id="courage-value">1</span>
+                    </div>
+                    <div class="attribute" title="魅力">
+                        <span class="attr-icon">✨</span>
+                        <span id="charm-value">1</span>
+                    </div>
+                    <div class="attribute" title="战斗力">
+                        <span class="attr-icon">💪</span>
+                        <span id="combat-value">1</span>
+                    </div>
+                </div>
+                <button id="menu-button" class="icon-button">☰</button>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="main-content">
+                <!-- Activity Selection View -->
+                <div id="activity-view" class="view active">
+                    <h2 class="view-title">选择活动</h2>
+                    <div class="activity-grid" id="activity-list">
+                        <!-- Activities will be dynamically generated -->
+                    </div>
+                </div>
+
+                <!-- Character Relationship View -->
+                <div id="relationship-view" class="view">
+                    <h2 class="view-title">人际关系</h2>
+                    <div class="character-grid" id="character-list">
+                        <!-- Characters will be dynamically generated -->
+                    </div>
+                </div>
+
+                <!-- Calendar View -->
+                <div id="calendar-view" class="view">
+                    <h2 class="view-title">日程表</h2>
+                    <div class="calendar-grid" id="calendar-grid">
+                        <!-- Calendar will be dynamically generated -->
+                    </div>
+                    <div class="deadline-list">
+                        <h3>即将到来的截止日期</h3>
+                        <ul id="deadline-list">
+                            <!-- Deadlines will be dynamically generated -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Battle View -->
+                <div id="battle-view" class="view">
+                    <div class="battle-container">
+                        <div class="enemy-area">
+                            <div class="enemy-sprite" id="enemy-sprite">👹</div>
+                            <div class="enemy-info">
+                                <div class="enemy-name" id="enemy-name">未知敌人</div>
+                                <div class="hp-bar">
+                                    <div class="hp-fill" id="enemy-hp-fill" style="width: 100%"></div>
+                                    <span class="hp-text" id="enemy-hp-text">100/100</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="player-area">
+                            <div class="player-info">
+                                <div class="player-name">主角</div>
+                                <div class="hp-bar">
+                                    <div class="hp-fill player-hp" id="player-hp-fill" style="width: 100%"></div>
+                                    <span class="hp-text" id="player-hp-text">100/100</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="battle-log" id="battle-log">
+                            <p>战斗开始！</p>
+                        </div>
+                        <div class="battle-actions">
+                            <button class="action-button" data-action="attack">攻击</button>
+                            <button class="action-button" data-action="skill">技能</button>
+                            <button class="action-button" data-action="item">道具</button>
+                            <button class="action-button" data-action="defend">防御</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Navigation -->
+            <div class="bottom-nav">
+                <button class="nav-button active" data-view="activity-view">
+                    <span class="nav-icon">📅</span>
+                    <span class="nav-label">活动</span>
+                </button>
+                <button class="nav-button" data-view="relationship-view">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-label">关系</span>
+                </button>
+                <button class="nav-button" data-view="calendar-view">
+                    <span class="nav-icon">📆</span>
+                    <span class="nav-label">日程</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Menu Overlay -->
+        <div id="menu-overlay" class="overlay">
+            <div class="menu-panel">
+                <h2>菜单</h2>
+                <button class="menu-item" id="save-game-btn">保存游戏</button>
+                <button class="menu-item" id="load-game-btn">读取存档</button>
+                <button class="menu-item" id="close-menu-btn">关闭</button>
+            </div>
+        </div>
+
+        <!-- Notification Toast -->
+        <div id="notification" class="notification"></div>
+    </div>
+
+    <script>
+// 所有JavaScript代码打包在一起，无需模块系统
+(function() {
+    'use strict';
+
+    // ========== 游戏数据 ==========
+    const GameData = {
+        activities: [
+            {
+                id: 'study_library',
+                name: '图书馆学习',
+                description: '在图书馆学习，提升知识',
+                conditions: { time_period: 1 },
+                effects: { attributes: { knowledge: 5 } }
+            },
+            {
+                id: 'train_combat',
+                name: '战斗训练',
+                description: '进行战斗训练，提升战斗力',
+                conditions: { time_period: 1 },
+                effects: { attributes: { combat: 5 } }
+            },
+            {
+                id: 'social_activity',
+                name: '社交活动',
+                description: '参加社交活动，提升魅力',
+                conditions: { time_period: 2 },
+                effects: { attributes: { charm: 5 } }
+            },
+            {
+                id: 'adventure_activity',
+                name: '冒险活动',
+                description: '尝试冒险活动，提升勇气',
+                conditions: { time_period: 2 },
+                effects: { attributes: { courage: 5 } }
+            },
+            {
+                id: 'cafe_rest',
+                name: '咖啡厅休息',
+                description: '在咖啡厅放松，恢复精力',
+                conditions: {},
+                effects: { attributes: { charm: 2 } }
+            },
+            {
+                id: 'early_morning_run',
+                name: '晨跑',
+                description: '早晨跑步锻炼身体',
+                conditions: { time_period: 0 },
+                effects: { attributes: { combat: 3, courage: 2 } }
+            },
+            {
+                id: 'lecture_attend',
+                name: '参加讲座',
+                description: '听取学术讲座，增长见识',
+                conditions: { time_period: 1 },
+                effects: { attributes: { knowledge: 4, charm: 1 } }
+            },
+            {
+                id: 'explore_city',
+                name: '探索城市',
+                description: '探索新东京的街道',
+                conditions: { time_period: 2 },
+                effects: { attributes: { courage: 3, knowledge: 2 } }
+            },
+            {
+                id: 'meditation',
+                name: '冥想训练',
+                description: '进行认知空间冥想训练',
+                conditions: { required_attributes: { knowledge: 2 } },
+                effects: { attributes: { knowledge: 3, combat: 2 } }
+            },
+            {
+                id: 'advanced_combat',
+                name: '高级战斗训练',
+                description: '更高强度的战斗训练',
+                conditions: { required_attributes: { combat: 3, courage: 2 } },
+                effects: { attributes: { combat: 7, courage: 3 } }
+            }
+        ],
+
+        characters: [
+            { id: 'char_akatsuki', name: '晓', title: '青梅竹马', avatar: '🌸' },
+            { id: 'char_zero', name: '零', title: '神秘黑客', avatar: '💻' },
+            { id: 'char_mizuki', name: '美月', title: '学生会长', avatar: '👑' },
+            { id: 'char_takuya', name: '拓也', title: '热血运动员', avatar: '⚡' },
+            { id: 'char_sakura', name: '咲良', title: '天才少女', avatar: '🔬' },
+            { id: 'char_rin', name: '凛', title: '冷酷杀手', avatar: '🗡️' },
+            { id: 'char_yuma', name: '悠真', title: '艺术家', avatar: '🎨' },
+            { id: 'char_hibiki', name: '响', title: '音乐家', avatar: '🎵' }
+        ],
+
+        missions: [
+            { id: 'mission_01', name: '第一次拯救', deadline: 15 },
+            { id: 'mission_02', name: '学生会的危机', deadline: 25 },
+            { id: 'mission_03', name: '教师的秘密', deadline: 35 },
+            { id: 'mission_04', name: '潜入NeuroCorp', deadline: 45 },
+            { id: 'mission_05', name: '阻止叛徒', deadline: 70 },
+            { id: 'mission_06', name: '最终决战', deadline: 100 }
+        ],
+
+        enemies: [
+            { id: 'enemy_shadow', name: '阴影怪物', maxHP: 50, attack: 10, sprite: '👥' },
+            { id: 'enemy_nightmare', name: '噩梦实体', maxHP: 80, attack: 15, sprite: '😈' },
+            { id: 'enemy_guardian', name: '认知守卫', maxHP: 120, attack: 20, sprite: '🛡️' },
+            { id: 'enemy_final_boss', name: '集体意识核心', maxHP: 300, attack: 35, sprite: '🌀' }
+        ]
+    };
+
+    // ========== 时间管理器 ==========
+    class TimeManager {
+        constructor() {
+            this.currentDay = 1;
+            this.currentPeriod = 0;
+            this.periodNames = ['早晨', '下午', '夜晚'];
+        }
+
+        reset() {
+            this.currentDay = 1;
+            this.currentPeriod = 0;
+        }
+
+        advance() {
+            this.currentPeriod++;
+            let dayChanged = false;
+            if (this.currentPeriod >= 3) {
+                this.currentPeriod = 0;
+                this.currentDay++;
+                dayChanged = true;
+            }
+            return {
+                currentDay: this.currentDay,
+                currentPeriod: this.currentPeriod,
+                periodName: this.periodNames[this.currentPeriod],
+                dayChanged: dayChanged
+            };
+        }
+
+        getCurrentTime() {
+            return {
+                day: this.currentDay,
+                period: this.currentPeriod,
+                periodName: this.periodNames[this.currentPeriod]
+            };
+        }
+
+        getSaveData() {
+            return { currentDay: this.currentDay, currentPeriod: this.currentPeriod };
+        }
+
+        load(data) {
+            if (data) {
+                this.currentDay = data.currentDay || 1;
+                this.currentPeriod = data.currentPeriod || 0;
+            }
+        }
+    }
+
+    // ========== 属性管理器 ==========
+    class AttributeManager {
+        constructor() {
+            this.attributes = {
+                knowledge: { level: 1, exp: 0 },
+                courage: { level: 1, exp: 0 },
+                charm: { level: 1, exp: 0 },
+                combat: { level: 1, exp: 0 }
+            };
+            this.expRequired = [0, 10, 25, 45, 70, 100, 135, 175, 220, 270, 325];
+            this.maxLevel = 10;
+        }
+
+        reset() {
+            this.attributes = {
+                knowledge: { level: 1, exp: 0 },
+                courage: { level: 1, exp: 0 },
+                charm: { level: 1, exp: 0 },
+                combat: { level: 1, exp: 0 }
+            };
+        }
+
+        modify(attrName, expGain) {
+            if (!this.attributes[attrName]) return { leveledUp: false };
+
+            const attr = this.attributes[attrName];
+            const oldLevel = attr.level;
+            attr.exp += expGain;
+
+            while (attr.level < this.maxLevel && attr.exp >= this.expRequired[attr.level]) {
+                attr.exp -= this.expRequired[attr.level];
+                attr.level++;
+            }
+
+            if (attr.level >= this.maxLevel) {
+                attr.exp = 0;
+            }
+
+            return {
+                attrName: attrName,
+                oldLevel: oldLevel,
+                newLevel: attr.level,
+                leveledUp: attr.level > oldLevel
+            };
+        }
+
+        getLevel(attrName) {
+            return this.attributes[attrName]?.level || 0;
+        }
+
+        getAll() {
+            return {
+                knowledge: this.attributes.knowledge.level,
+                courage: this.attributes.courage.level,
+                charm: this.attributes.charm.level,
+                combat: this.attributes.combat.level
+            };
+        }
+
+        getTotal() {
+            return Object.values(this.attributes).reduce((sum, attr) => sum + attr.level, 0);
+        }
+
+        getAttributeName(attrName) {
+            const names = {
+                knowledge: '知识',
+                courage: '勇气',
+                charm: '魅力',
+                combat: '战斗力'
+            };
+            return names[attrName] || attrName;
+        }
+
+        getSaveData() {
+            return { attributes: JSON.parse(JSON.stringify(this.attributes)) };
+        }
+
+        load(data) {
+            if (data && data.attributes) {
+                this.attributes = JSON.parse(JSON.stringify(data.attributes));
+            }
+        }
+    }
+
+    // ========== 好感度管理器 ==========
+    class RelationshipManager {
+        constructor() {
+            this.relationships = {};
+            this.maxLevel = 10;
+        }
+
+        init(characters) {
+            for (const char of characters) {
+                this.relationships[char.id] = {
+                    level: 0,
+                    exp: 0,
+                    lastInteraction: 0
+                };
+            }
+        }
+
+        reset() {
+            this.relationships = {};
+        }
+
+        modify(charId, expGain, currentDay = 0) {
+            if (!this.relationships[charId]) return { leveledUp: false };
+
+            const rel = this.relationships[charId];
+            const oldLevel = rel.level;
+            rel.exp += expGain;
+            rel.lastInteraction = currentDay;
+
+            const expPerLevel = 10;
+            while (rel.level < this.maxLevel && rel.exp >= expPerLevel) {
+                rel.exp -= expPerLevel;
+                rel.level++;
+            }
+
+            if (rel.level >= this.maxLevel) {
+                rel.level = this.maxLevel;
+                rel.exp = 0;
+            }
+
+            return {
+                charId: charId,
+                oldLevel: oldLevel,
+                newLevel: rel.level,
+                leveledUp: rel.level > oldLevel
+            };
+        }
+
+        getLevel(charId) {
+            return this.relationships[charId]?.level || 0;
+        }
+
+        getAll() {
+            const result = {};
+            for (const [charId, rel] of Object.entries(this.relationships)) {
+                result[charId] = rel.level;
+            }
+            return result;
+        }
+
+        getTotalLevel() {
+            return Object.values(this.relationships).reduce((sum, rel) => sum + rel.level, 0);
+        }
+
+        getSaveData() {
+            return { relationships: JSON.parse(JSON.stringify(this.relationships)) };
+        }
+
+        load(data) {
+            if (data && data.relationships) {
+                this.relationships = JSON.parse(JSON.stringify(data.relationships));
+            }
+        }
+    }
+
+    // ========== 事件管理器 ==========
+    class EventManager {
+        constructor() {
+            this.activities = [];
+            this.completedMissions = new Set();
+        }
+
+        init(activities) {
+            this.activities = activities;
+        }
+
+        reset() {
+            this.completedMissions.clear();
+        }
+
+        getAvailableActivities(currentDay, currentPeriod, attributes, relationships) {
+            return this.activities.filter(activity => {
+                return this.checkConditions(activity, currentDay, currentPeriod, attributes);
+            });
+        }
+
+        checkConditions(activity, currentDay, currentPeriod, attributes) {
+            const cond = activity.conditions;
+            if (!cond) return true;
+
+            if (cond.time_period !== undefined && cond.time_period !== currentPeriod) {
+                return false;
+            }
+
+            if (cond.required_attributes) {
+                for (const [attr, required] of Object.entries(cond.required_attributes)) {
+                    if (attributes[attr] < required) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        getActivity(activityId) {
+            return this.activities.find(a => a.id === activityId);
+        }
+
+        completeMission(missionId) {
+            this.completedMissions.add(missionId);
+        }
+
+        getCompletedMissions() {
+            return Array.from(this.completedMissions);
+        }
+
+        getSaveData() {
+            return { completedMissions: Array.from(this.completedMissions) };
+        }
+
+        load(data) {
+            if (data) {
+                this.completedMissions = new Set(data.completedMissions || []);
+            }
+        }
+    }
+
+    // ========== 战斗管理器 ==========
+    class BattleManager {
+        constructor() {
+            this.inBattle = false;
+            this.currentEnemy = null;
+            this.playerStats = null;
+            this.battleLog = [];
+        }
+
+        startBattle(enemy, playerCombatLevel) {
+            this.inBattle = true;
+            this.currentEnemy = { ...enemy, currentHP: enemy.maxHP };
+            this.playerStats = {
+                maxHP: 100 + playerCombatLevel * 20,
+                currentHP: 100 + playerCombatLevel * 20,
+                attack: 10 + playerCombatLevel * 5
+            };
+            this.battleLog = [];
+            this.addLog('战斗开始！');
+            this.addLog(`${enemy.name} 出现了！`);
+            return { enemy: this.currentEnemy, player: this.playerStats };
+        }
+
+        playerAction(action) {
+            if (!this.inBattle) return null;
+
+            const result = { playerAction: null, enemyAction: null, battleEnd: false, victory: false };
+
+            switch (action) {
+                case 'attack':
+                    result.playerAction = this.playerAttack();
+                    break;
+                case 'skill':
+                    result.playerAction = this.playerSkill();
+                    break;
+                case 'defend':
+                    result.playerAction = this.playerDefend();
+                    break;
+                case 'item':
+                    result.playerAction = this.useItem();
+                    break;
+            }
+
+            if (this.currentEnemy.currentHP <= 0) {
+                this.addLog(`${this.currentEnemy.name} 被击败了！`);
+                this.addLog('战斗胜利！');
+                this.inBattle = false;
+                result.battleEnd = true;
+                result.victory = true;
+                return result;
+            }
+
+            result.enemyAction = this.enemyTurn();
+
+            if (this.playerStats.currentHP <= 0) {
+                this.addLog('你被击败了...');
+                this.inBattle = false;
+                result.battleEnd = true;
+                result.victory = false;
+                return result;
+            }
+
+            return result;
+        }
+
+        playerAttack() {
+            const damage = Math.floor(this.playerStats.attack * (0.8 + Math.random() * 0.4));
+            this.currentEnemy.currentHP -= damage;
+            this.addLog(`你造成了 ${damage} 点伤害！`);
+            return { type: 'attack', damage };
+        }
+
+        playerSkill() {
+            const damage = Math.floor(this.playerStats.attack * 1.5 * (0.8 + Math.random() * 0.4));
+            this.currentEnemy.currentHP -= damage;
+            this.addLog(`你使用了技能，造成 ${damage} 点伤害！`);
+            return { type: 'skill', damage };
+        }
+
+        playerDefend() {
+            this.addLog('你进入了防御姿态！');
+            return { type: 'defend' };
+        }
+
+        useItem() {
+            const heal = 30;
+            this.playerStats.currentHP = Math.min(this.playerStats.maxHP, this.playerStats.currentHP + heal);
+            this.addLog(`你使用了恢复道具，恢复了 ${heal} HP！`);
+            return { type: 'item', heal };
+        }
+
+        enemyTurn() {
+            const damage = Math.floor(this.currentEnemy.attack * (0.8 + Math.random() * 0.4));
+            this.playerStats.currentHP -= damage;
+            this.addLog(`${this.currentEnemy.name} 攻击了你，造成 ${damage} 点伤害！`);
+            return { type: 'attack', damage };
+        }
+
+        addLog(message) {
+            this.battleLog.push(message);
+            if (this.battleLog.length > 10) {
+                this.battleLog.shift();
+            }
+        }
+
+        getBattleState() {
+            return {
+                inBattle: this.inBattle,
+                enemy: this.currentEnemy,
+                player: this.playerStats,
+                log: this.battleLog
+            };
+        }
+
+        endBattle() {
+            this.inBattle = false;
+            this.currentEnemy = null;
+            this.playerStats = null;
+            this.battleLog = [];
+        }
+    }
+
+    // ========== UI管理器 ==========
+    class UIManager {
+        constructor(managers) {
+            this.managers = managers;
+            this.currentView = 'activity-view';
+        }
+
+        init() {
+            this.bindEvents();
+            console.log('[UI] 初始化完成');
+        }
+
+        bindEvents() {
+            const self = this;
+
+            document.getElementById('start-game')?.addEventListener('click', () => {
+                self.hideScreen('loading-screen');
+                self.showScreen('main-screen');
+                self.managers.game.startNewGame();
+            });
+
+            document.getElementById('load-game')?.addEventListener('click', () => {
+                const saveData = self.loadSaveData();
+                if (saveData) {
+                    self.hideScreen('loading-screen');
+                    self.showScreen('main-screen');
+                    self.managers.game.loadGame(saveData);
+                } else {
+                    self.showNotification('没有存档');
+                }
+            });
+
+            document.getElementById('menu-button')?.addEventListener('click', () => {
+                self.toggleMenu();
+            });
+
+            document.getElementById('save-game-btn')?.addEventListener('click', () => {
+                self.managers.game.saveGame();
+                self.toggleMenu();
+            });
+
+            document.getElementById('close-menu-btn')?.addEventListener('click', () => {
+                self.toggleMenu();
+            });
+
+            document.querySelectorAll('.nav-button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const viewId = btn.dataset.view;
+                    self.switchView(viewId);
+                    document.querySelectorAll('.nav-button').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+
+            document.querySelectorAll('.action-button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const action = btn.dataset.action;
+                    self.handleBattleAction(action);
+                });
+            });
+        }
+
+        showScreen(screenId) {
+            document.getElementById(screenId)?.classList.add('active');
+        }
+
+        hideScreen(screenId) {
+            document.getElementById(screenId)?.classList.remove('active');
+        }
+
+        switchView(viewId) {
+            document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+            document.getElementById(viewId)?.classList.add('active');
+            this.currentView = viewId;
+
+            if (viewId === 'activity-view') {
+                this.updateActivityList();
+            } else if (viewId === 'relationship-view') {
+                this.updateRelationshipList();
+            } else if (viewId === 'calendar-view') {
+                this.updateCalendar();
+            }
+        }
+
+        updateAllDisplays() {
+            this.updateTimeDisplay();
+            this.updateAttributesDisplay();
+            this.updateActivityList();
+        }
+
+        updateTimeDisplay() {
+            const time = this.managers.time.getCurrentTime();
+            document.getElementById('current-day').textContent = time.day;
+            document.getElementById('time-period').textContent = time.periodName;
+        }
+
+        updateAttributesDisplay() {
+            const attrs = this.managers.attributes.getAll();
+            document.getElementById('knowledge-value').textContent = attrs.knowledge;
+            document.getElementById('courage-value').textContent = attrs.courage;
+            document.getElementById('charm-value').textContent = attrs.charm;
+            document.getElementById('combat-value').textContent = attrs.combat;
+        }
+
+        updateActivityList() {
+            const container = document.getElementById('activity-list');
+            if (!container) return;
+
+            const time = this.managers.time.getCurrentTime();
+            const attrs = this.managers.attributes.getAll();
+            const rels = this.managers.relationships.getAll();
+            const activities = this.managers.events.getAvailableActivities(time.day, time.period, attrs, rels);
+
+            container.innerHTML = '';
+
+            if (activities.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 40px;">当前没有可用活动</p>';
+                return;
+            }
+
+            const self = this;
+            for (const activity of activities) {
+                const card = document.createElement('div');
+                card.className = 'activity-card';
+
+                const isLocked = !this.managers.game.checkActivityRequirements(activity);
+                if (isLocked) card.classList.add('locked');
+
+                let effectsHTML = '';
+                if (activity.effects && activity.effects.attributes) {
+                    for (const [attr, value] of Object.entries(activity.effects.attributes)) {
+                        const name = this.managers.attributes.getAttributeName(attr);
+                        effectsHTML += `<span class="effect-tag">+${value} ${name}</span>`;
+                    }
+                }
+
+                card.innerHTML = `
+                    <div class="activity-title">${activity.name}</div>
+                    <div class="activity-description">${activity.description}</div>
+                    <div class="activity-effects">${effectsHTML}</div>
+                `;
+
+                if (!isLocked) {
+                    card.addEventListener('click', () => {
+                        self.managers.game.doActivity(activity.id);
+                        self.updateAllDisplays();
+                    });
+                }
+
+                container.appendChild(card);
+            }
+        }
+
+        updateRelationshipList() {
+            const container = document.getElementById('character-list');
+            if (!container) return;
+
+            container.innerHTML = '';
+            const rels = this.managers.relationships.relationships;
+
+            for (const char of GameData.characters) {
+                const rel = rels[char.id];
+                if (!rel) continue;
+
+                const progress = (rel.level / 10) * 100;
+
+                const card = document.createElement('div');
+                card.className = 'character-card';
+                card.innerHTML = `
+                    <div class="character-header">
+                        <div class="character-avatar">${char.avatar}</div>
+                        <div class="character-info">
+                            <div class="character-name">${char.name}</div>
+                            <div class="character-title">${char.title}</div>
+                        </div>
+                    </div>
+                    <div class="relationship-bar">
+                        <div class="relationship-fill" style="width: ${progress}%"></div>
+                        <div class="relationship-label">Lv ${rel.level}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            }
+        }
+
+        updateCalendar() {
+            const container = document.getElementById('calendar-grid');
+            if (!container) return;
+
+            const currentDay = this.managers.time.getCurrentTime().day;
+            container.innerHTML = '';
+
+            for (let i = 1; i <= 35; i++) {
+                const day = Math.floor((currentDay - 1) / 35) * 35 + i;
+                if (day > 100) break;
+
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day';
+                if (day === currentDay) dayEl.classList.add('current');
+                else if (day < currentDay) dayEl.classList.add('past');
+
+                dayEl.innerHTML = `<div class="day-num">${day}</div>`;
+                container.appendChild(dayEl);
+            }
+
+            // 显示截止日期
+            const deadlineList = document.getElementById('deadline-list');
+            if (deadlineList) {
+                deadlineList.innerHTML = '';
+                for (const mission of GameData.missions) {
+                    if (mission.deadline >= currentDay) {
+                        const li = document.createElement('li');
+                        li.textContent = `Day ${mission.deadline}: ${mission.name}`;
+                        deadlineList.appendChild(li);
+                    }
+                }
+            }
+        }
+
+        handleBattleAction(action) {
+            const result = this.managers.battle.playerAction(action);
+            if (!result) return;
+
+            this.updateBattleDisplay();
+
+            if (result.battleEnd) {
+                const self = this;
+                setTimeout(() => {
+                    if (result.victory) {
+                        self.showNotification('战斗胜利！');
+                    } else {
+                        self.showNotification('战斗失败...');
+                    }
+                    self.switchView('activity-view');
+                }, 1500);
+            }
+        }
+
+        updateBattleDisplay() {
+            const state = this.managers.battle.getBattleState();
+            if (!state.inBattle) return;
+
+            const enemyHPPercent = (state.enemy.currentHP / state.enemy.maxHP) * 100;
+            document.getElementById('enemy-hp-fill').style.width = `${Math.max(0, enemyHPPercent)}%`;
+            document.getElementById('enemy-hp-text').textContent = `${Math.max(0, state.enemy.currentHP)}/${state.enemy.maxHP}`;
+
+            const playerHPPercent = (state.player.currentHP / state.player.maxHP) * 100;
+            document.getElementById('player-hp-fill').style.width = `${Math.max(0, playerHPPercent)}%`;
+            document.getElementById('player-hp-text').textContent = `${Math.max(0, state.player.currentHP)}/${state.player.maxHP}`;
+
+            document.getElementById('enemy-name').textContent = state.enemy.name;
+            document.getElementById('enemy-sprite').textContent = state.enemy.sprite;
+
+            const logEl = document.getElementById('battle-log');
+            if (logEl) {
+                logEl.innerHTML = state.log.map(msg => `<p>${msg}</p>`).join('');
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+        }
+
+        toggleMenu() {
+            document.getElementById('menu-overlay')?.classList.toggle('active');
+        }
+
+        showNotification(message, duration = 2000) {
+            const notification = document.getElementById('notification');
+            if (!notification) return;
+
+            notification.textContent = message;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, duration);
+        }
+
+        loadSaveData() {
+            try {
+                const data = localStorage.getItem('mindlink_save');
+                return data ? JSON.parse(data) : null;
+            } catch (error) {
+                console.error('Failed to load save data:', error);
+                return null;
+            }
+        }
+
+        showEnding(ending) {
+            alert(`\n${ending.name}\n\n${ending.description}\n\n游戏结束！`);
+        }
+    }
+
+    // ========== 游戏管理器 ==========
+    class GameManager {
+        constructor(managers) {
+            this.managers = managers;
+            this.gameState = {
+                currentDay: 1,
+                currentTimePeriod: 0,
+                gameOver: false
+            };
+        }
+
+        startNewGame() {
+            console.log('[Game] 开始新游戏');
+            this.managers.time.reset();
+            this.managers.attributes.reset();
+            this.managers.relationships.reset();
+            this.managers.events.reset();
+
+            this.gameState = {
+                currentDay: 1,
+                currentTimePeriod: 0,
+                gameOver: false
+            };
+
+            this.managers.ui.updateAllDisplays();
+            this.managers.ui.showNotification('游戏开始！Day 1 - 早晨');
+        }
+
+        loadGame(saveData) {
+            if (!saveData) {
+                this.managers.ui.showNotification('没有找到存档');
+                return false;
+            }
+
+            try {
+                this.managers.time.load(saveData.time);
+                this.managers.attributes.load(saveData.attributes);
+                this.managers.relationships.load(saveData.relationships);
+                this.managers.events.load(saveData.events);
+                this.gameState = saveData.gameState;
+                this.managers.ui.updateAllDisplays();
+                this.managers.ui.showNotification('游戏加载成功');
+                return true;
+            } catch (error) {
+                console.error('Load game error:', error);
+                this.managers.ui.showNotification('加载失败');
+                return false;
+            }
+        }
+
+        saveGame() {
+            const saveData = {
+                version: '1.0',
+                timestamp: Date.now(),
+                gameState: this.gameState,
+                time: this.managers.time.getSaveData(),
+                attributes: this.managers.attributes.getSaveData(),
+                relationships: this.managers.relationships.getSaveData(),
+                events: this.managers.events.getSaveData()
+            };
+
+            try {
+                localStorage.setItem('mindlink_save', JSON.stringify(saveData));
+                this.managers.ui.showNotification('游戏保存成功');
+                return true;
+            } catch (error) {
+                console.error('Save game error:', error);
+                this.managers.ui.showNotification('保存失败');
+                return false;
+            }
+        }
+
+        doActivity(activityId) {
+            const activity = this.managers.events.getActivity(activityId);
+            if (!activity) return;
+
+            if (!this.checkActivityRequirements(activity)) {
+                this.managers.ui.showNotification('不满足活动条件');
+                return;
+            }
+
+            this.applyActivityEffects(activity);
+            this.advanceTime();
+        }
+
+        checkActivityRequirements(activity) {
+            if (!activity.conditions || !activity.conditions.required_attributes) return true;
+            const attrs = this.managers.attributes.getAll();
+            for (const [attr, required] of Object.entries(activity.conditions.required_attributes)) {
+                if (attrs[attr] < required) return false;
+            }
+            return true;
+        }
+
+        applyActivityEffects(activity) {
+            if (!activity.effects) return;
+
+            if (activity.effects.attributes) {
+                for (const [attr, value] of Object.entries(activity.effects.attributes)) {
+                    const result = this.managers.attributes.modify(attr, value);
+                    if (result.leveledUp) {
+                        this.managers.ui.showNotification(
+                            `${this.managers.attributes.getAttributeName(attr)} 提升到 Lv${result.newLevel}！`
+                        );
+                    }
+                }
+            }
+
+            this.managers.ui.showNotification(`完成活动: ${activity.name}`);
+        }
+
+        advanceTime() {
+            const result = this.managers.time.advance();
+            if (result.dayChanged) {
+                this.onDayChanged(result.currentDay);
+            }
+            this.managers.ui.updateTimeDisplay();
+        }
+
+        onDayChanged(newDay) {
+            console.log('[Game] Day changed to:', newDay);
+            if (newDay > 100) {
+                this.triggerEnding();
+            }
+        }
+
+        triggerEnding() {
+            this.gameState.gameOver = true;
+            const completedMissions = this.managers.events.getCompletedMissions();
+            const totalRels = this.managers.relationships.getTotalLevel();
+
+            let ending;
+            if (completedMissions.length === 6 && totalRels >= 50) {
+                ending = { name: '真结局 - 新世界', description: '你成功拯救了所有人...' };
+            } else if (completedMissions.length >= 4) {
+                ending = { name: '好结局 - 希望之光', description: '虽然有遗憾，但你守护了重要的人...' };
+            } else if (completedMissions.length >= 2) {
+                ending = { name: '普通结局 - 继续前行', description: '事件告一段落...' };
+            } else {
+                ending = { name: '坏结局 - 崩溃', description: '认知崩溃事件失控...' };
+            }
+
+            this.managers.ui.showEnding(ending);
+        }
+    }
+
+    // ========== 主应用 ==========
+    class MindLinkGame {
+        constructor() {
+            this.managers = {};
+        }
+
+        async init() {
+            console.log('='.repeat(50));
+            console.log('MindLink - 认知空间');
+            console.log('初始化中...');
+            console.log('='.repeat(50));
+
+            this.managers.time = new TimeManager();
+            this.managers.attributes = new AttributeManager();
+            this.managers.relationships = new RelationshipManager();
+            this.managers.events = new EventManager();
+            this.managers.battle = new BattleManager();
+
+            this.managers.relationships.init(GameData.characters);
+            this.managers.events.init(GameData.activities);
+
+            this.managers.game = new GameManager(this.managers);
+            this.managers.ui = new UIManager(this.managers);
+
+            this.managers.ui.init();
+
+            console.log('初始化完成！');
+            this.simulateLoading();
+        }
+
+        simulateLoading() {
+            const progressBar = document.querySelector('.loading-progress');
+            if (!progressBar) return;
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        document.getElementById('start-game').style.display = 'inline-block';
+                        document.getElementById('load-game').style.display = 'inline-block';
+                    }, 300);
+                }
+                progressBar.style.width = `${progress}%`;
+            }, 150);
+        }
+    }
+
+    // ========== 调试工具 ==========
+    window.debugGame = {
+        getManagers: () => window.game.managers,
+        setDay: (day) => {
+            window.game.managers.time.currentDay = day;
+            window.game.managers.ui.updateTimeDisplay();
+            console.log(`Day set to ${day}`);
+        },
+        setAttribute: (attr, level) => {
+            window.game.managers.attributes.attributes[attr].level = level;
+            window.game.managers.ui.updateAttributesDisplay();
+            console.log(`${attr} set to level ${level}`);
+        },
+        startBattle: (enemyId) => {
+            const enemy = GameData.enemies.find(e => e.id === enemyId);
+            if (enemy) {
+                const combat = window.game.managers.attributes.getLevel('combat');
+                window.game.managers.battle.startBattle(enemy, combat);
+                window.game.managers.ui.switchView('battle-view');
+                window.game.managers.ui.updateBattleDisplay();
+                console.log(`Battle started with ${enemy.name}`);
+            }
+        },
+        save: () => window.game.managers.game.saveGame(),
+        load: () => {
+            const saveData = JSON.parse(localStorage.getItem('mindlink_save'));
+            window.game.managers.game.loadGame(saveData);
+        },
+        clearSave: () => {
+            localStorage.removeItem('mindlink_save');
+            console.log('Save data cleared');
+        },
+        showStats: () => {
+            const time = window.game.managers.time.getCurrentTime();
+            const attrs = window.game.managers.attributes.getAll();
+            const rels = window.game.managers.relationships.getAll();
+            console.log('=== 游戏状态 ===');
+            console.log(`Day ${time.day} - ${time.periodName}`);
+            console.log('属性:', attrs);
+            console.log('好感度:', rels);
+            console.log('=============');
+        }
+    };
+
+    // ========== 启动游戏 ==========
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log('DOM加载完成，启动游戏...');
+        window.game = new MindLinkGame();
+        await window.game.init();
+        console.log('\n调试命令可用: window.debugGame');
+    });
+
+})();
+    </script>
+</body>
+</html>
