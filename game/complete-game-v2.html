@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindLink - 完整版 (Day 1-100)</title>
+    <style>
+/* ========== 基础样式 ========== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    --primary-bg: #0a0e27;
+    --secondary-bg: #151932;
+    --accent-blue: #00d4ff;
+    --accent-purple: #9d4edd;
+    --accent-pink: #ff006e;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --border-color: #2d3561;
+    --success-color: #06ffa5;
+    --warning-color: #ffbe0b;
+    --danger-color: #ff006e;
+    --pixel-font: 'Courier New', monospace;
+}
+
+body {
+    font-family: var(--pixel-font);
+    background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+#game-container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background-color: var(--primary-bg);
+    box-shadow: 0 0 50px rgba(0, 212, 255, 0.3);
+    padding: 20px;
+    position: relative;
+}
+
+/* ========== 音效开关 ========== */
+.sound-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    background: var(--secondary-bg);
+    border: 2px solid var(--accent-blue);
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 1.5rem;
+    transition: all 0.3s;
+}
+
+.sound-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+}
+
+/* ========== 游戏头部 ========== */
+.game-header {
+    background: var(--secondary-bg);
+    border: 2px solid var(--border-color);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.day-display {
+    font-size: 2rem;
+    color: var(--accent-blue);
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.stat-item {
+    background: var(--primary-bg);
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    text-align: center;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.stat-value {
+    color: var(--accent-blue);
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+/* ========== 按钮样式 ========== */
+.btn {
+    background: var(--secondary-bg);
+    border: 2px solid var(--accent-blue);
+    color: var(--accent-blue);
+    padding: 15px 30px;
+    font-family: var(--pixel-font);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin: 5px;
+}
+
+.btn:hover {
+    background: var(--accent-blue);
+    color: var(--primary-bg);
+    transform: translateY(-2px);
+}
+
+.btn-primary {
+    background: var(--accent-blue);
+    color: var(--primary-bg);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ========== 对话框 ========== */
+.dialogue-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 14, 39, 0.95);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.dialogue-overlay.active {
+    display: flex;
+}
+
+.dialogue-box {
+    width: 90%;
+    max-width: 900px;
+    background: var(--secondary-bg);
+    border: 3px solid var(--accent-blue);
+    padding: 30px;
+    box-shadow: 0 0 50px rgba(0, 212, 255, 0.5);
+    position: relative;
+}
+
+.dialogue-character {
+    position: absolute;
+    bottom: 20px;
+    font-size: 12rem;
+    opacity: 0.8;
+    animation: float 3s ease-in-out infinite;
+}
+
+.dialogue-character.left {
+    left: -80px;
+}
+
+.dialogue-character.right {
+    right: -80px;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+}
+
+.dialogue-location {
+    color: var(--accent-purple);
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.dialogue-speaker {
+    color: var(--accent-blue);
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.dialogue-text {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    line-height: 1.8;
+    margin-bottom: 20px;
+    min-height: 100px;
+    white-space: pre-wrap;
+}
+
+.dialogue-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.choice-btn {
+    background: var(--primary-bg);
+    border: 2px solid var(--accent-blue);
+    color: var(--text-primary);
+    padding: 15px;
+    font-family: var(--pixel-font);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: left;
+}
+
+.choice-btn:hover {
+    background: var(--accent-blue);
+    color: var(--primary-bg);
+    transform: translateX(10px);
+}
+
+.dialogue-continue {
+    background: var(--accent-blue);
+    border: none;
+    color: var(--primary-bg);
+    padding: 12px 30px;
+    font-family: var(--pixel-font);
+    font-size: 1rem;
+    cursor: pointer;
+    float: right;
+    transition: all 0.3s;
+}
+
+.dialogue-continue:hover {
+    transform: scale(1.05);
+}
+
+/* ========== 战斗UI ========== */
+.battle-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 14, 39, 0.98);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.battle-overlay.active {
+    display: flex;
+}
+
+.battle-container {
+    width: 100%;
+    max-width: 1000px;
+}
+
+.battle-arena {
+    background: var(--secondary-bg);
+    border: 3px solid var(--accent-blue);
+    padding: 30px;
+    margin-bottom: 20px;
+}
+
+.enemy-section {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.enemy-sprite {
+    font-size: 10rem;
+    animation: shake 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes shake {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(5px); }
+}
+
+.enemy-name {
+    color: var(--danger-color);
+    font-size: 1.8rem;
+    margin: 10px 0;
+}
+
+.hp-bar {
+    width: 400px;
+    height: 30px;
+    background: var(--primary-bg);
+    border: 2px solid var(--border-color);
+    margin: 10px auto;
+    position: relative;
+    overflow: hidden;
+}
+
+.hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--danger-color), var(--accent-pink));
+    transition: width 0.5s;
+    position: relative;
+}
+
+.hp-fill.player {
+    background: linear-gradient(90deg, var(--success-color), var(--accent-blue));
+}
+
+.hp-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-primary);
+    font-weight: bold;
+    z-index: 1;
+}
+
+.player-section {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.player-sprite {
+    font-size: 6rem;
+}
+
+.battle-log {
+    background: var(--primary-bg);
+    border: 2px solid var(--border-color);
+    padding: 15px;
+    height: 120px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.battle-log-entry {
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+    padding: 3px;
+}
+
+.battle-log-entry.damage {
+    color: var(--danger-color);
+}
+
+.battle-log-entry.heal {
+    color: var(--success-color);
+}
+
+.battle-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.battle-btn {
+    background: var(--secondary-bg);
+    border: 2px solid var(--accent-blue);
+    color: var(--accent-blue);
+    padding: 20px;
+    font-family: var(--pixel-font);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.battle-btn:hover:not(:disabled) {
+    background: var(--accent-blue);
+    color: var(--primary-bg);
+    transform: scale(1.05);
+}
+
+.battle-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.battle-btn .sp-cost {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--warning-color);
+}
+
+/* ========== 商店面板 ========== */
+.shop-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--secondary-bg);
+    border: 3px solid var(--accent-blue);
+    padding: 30px;
+    max-width: 900px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 1500;
+    display: none;
+}
+
+.shop-panel.active {
+    display: block;
+}
+
+.shop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.shop-money {
+    color: var(--success-color);
+    font-size: 1.5rem;
+}
+
+.shop-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.shop-item {
+    background: var(--primary-bg);
+    border: 2px solid var(--border-color);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+}
+
+.shop-item:hover {
+    border-color: var(--accent-blue);
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0, 212, 255, 0.3);
+}
+
+.shop-item-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.shop-item-name {
+    color: var(--accent-blue);
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+}
+
+.shop-item-desc {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+}
+
+.shop-item-price {
+    color: var(--success-color);
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.shop-item.owned {
+    border-color: var(--success-color);
+}
+
+.shop-item-count {
+    color: var(--success-color);
+    font-size: 0.9rem;
+}
+
+/* ========== 技能面板 ========== */
+.skill-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--secondary-bg);
+    border: 3px solid var(--accent-blue);
+    padding: 30px;
+    max-width: 900px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 1500;
+    display: none;
+}
+
+.skill-panel.active {
+    display: block;
+}
+
+.equipped-skills {
+    display: flex;
+    gap: 15px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.skill-slot {
+    background: var(--primary-bg);
+    border: 2px solid var(--border-color);
+    width: 150px;
+    height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+}
+
+.skill-slot:hover {
+    border-color: var(--accent-blue);
+    transform: scale(1.05);
+}
+
+.skill-slot.empty {
+    opacity: 0.5;
+    border-style: dashed;
+}
+
+.skill-slot.locked {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.skill-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.skill-name {
+    color: var(--accent-blue);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.skill-cost {
+    color: var(--warning-color);
+    font-size: 0.8rem;
+}
+
+.available-skills {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.skill-card {
+    background: var(--primary-bg);
+    border: 2px solid var(--border-color);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.skill-card:hover:not(.locked) {
+    border-color: var(--accent-blue);
+    transform: translateY(-5px);
+}
+
+.skill-card.equipped {
+    border-color: var(--success-color);
+    background: rgba(6, 255, 165, 0.1);
+}
+
+.skill-card.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ========== 活动卡片 ========== */
+.action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.action-card {
+    background: var(--secondary-bg);
+    border: 2px solid var(--border-color);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.action-card:hover {
+    border-color: var(--accent-blue);
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0, 212, 255, 0.3);
+}
+
+.action-title {
+    color: var(--accent-blue);
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.action-desc {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* ========== 日志 ========== */
+.log {
+    background: var(--secondary-bg);
+    border: 2px solid var(--border-color);
+    padding: 20px;
+    margin-top: 20px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.log-entry {
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    padding: 5px;
+    border-left: 2px solid var(--accent-purple);
+    padding-left: 10px;
+}
+
+.log-entry.important {
+    color: var(--accent-blue);
+    border-left-color: var(--accent-blue);
+}
+
+/* ========== 通知 ========== */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 80px;
+    background: var(--accent-blue);
+    color: var(--primary-bg);
+    padding: 15px 25px;
+    border-radius: 5px;
+    font-size: 1rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 2000;
+    pointer-events: none;
+}
+
+.notification.show {
+    opacity: 1;
+}
+
+/* ========== 底部导航 ========== */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--secondary-bg);
+    border-top: 2px solid var(--border-color);
+    padding: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    z-index: 999;
+}
+
+/* ========== 滚动条美化 ========== */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--primary-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--accent-blue);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-purple);
+}
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- 音效开关 -->
+        <div class="sound-toggle" id="sound-toggle" title="音效开/关">🔊</div>
+
+        <!-- 游戏主界面 -->
+        <div id="main-ui">
+            <div class="game-header">
+                <div class="day-display">
+                    Day <span id="current-day">1</span> - <span id="time-period">早晨</span>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">知识</div>
+                        <div class="stat-value" id="knowledge">1</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">勇气</div>
+                        <div class="stat-value" id="courage">1</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">魅力</div>
+                        <div class="stat-value" id="charm">1</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">战斗力</div>
+                        <div class="stat-value" id="combat">1</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">💰 金钱</div>
+                        <div class="stat-value" id="money">500</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">⚡ SP</div>
+                        <div class="stat-value" id="sp">100</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="main-content">
+                <h2 style="color: var(--accent-blue); margin-bottom: 20px;">选择活动</h2>
+                <div class="action-grid" id="action-list"></div>
+            </div>
+
+            <div class="log" id="game-log">
+                <div class="log-entry important">欢迎来到 MindLink 完整版</div>
+                <div class="log-entry">Day 1-100 完整体验</div>
+            </div>
+        </div>
+
+        <!-- 底部导航 -->
+        <div class="bottom-nav">
+            <button class="btn btn-primary" onclick="game.startGame()">开始游戏</button>
+            <button class="btn" onclick="game.openShop()">🛒 商店</button>
+            <button class="btn" onclick="game.openSkills()">⚔️ 技能</button>
+            <button class="btn" onclick="game.save()">💾 保存</button>
+            <button class="btn" onclick="game.load()">📂 读取</button>
+        </div>
+
+        <!-- 对话框 -->
+        <div class="dialogue-overlay" id="dialogue-overlay">
+            <div class="dialogue-character left" id="char-left"></div>
+            <div class="dialogue-box">
+                <div class="dialogue-location" id="dialogue-location"></div>
+                <div class="dialogue-speaker" id="dialogue-speaker"></div>
+                <div class="dialogue-text" id="dialogue-text"></div>
+                <div class="dialogue-choices" id="dialogue-choices"></div>
+                <button class="dialogue-continue" id="dialogue-continue" onclick="game.continueDialogue()">
+                    继续 →
+                </button>
+            </div>
+            <div class="dialogue-character right" id="char-right"></div>
+        </div>
+
+        <!-- 战斗UI -->
+        <div class="battle-overlay" id="battle-overlay">
+            <div class="battle-container">
+                <h2 style="color: var(--danger-color); text-align: center; margin-bottom: 20px;">
+                    ⚔️ 战斗 ⚔️
+                </h2>
+
+                <div class="battle-arena">
+                    <!-- 敌人区域 -->
+                    <div class="enemy-section">
+                        <div class="enemy-sprite" id="enemy-sprite">👹</div>
+                        <div class="enemy-name" id="enemy-name">敌人</div>
+                        <div class="hp-bar">
+                            <div class="hp-fill" id="enemy-hp" style="width: 100%;"></div>
+                            <div class="hp-text" id="enemy-hp-text">100/100</div>
+                        </div>
+                    </div>
+
+                    <!-- 玩家区域 -->
+                    <div class="player-section">
+                        <div class="player-sprite">🧑</div>
+                        <div style="color: var(--accent-blue); font-size: 1.3rem; margin: 10px 0;">你</div>
+                        <div class="hp-bar">
+                            <div class="hp-fill player" id="player-hp" style="width: 100%;"></div>
+                            <div class="hp-text" id="player-hp-text">100/100</div>
+                        </div>
+                        <div style="color: var(--warning-color); margin-top: 5px;">
+                            SP: <span id="battle-sp">100</span>
+                        </div>
+                    </div>
+
+                    <!-- 战斗日志 -->
+                    <div class="battle-log" id="battle-log"></div>
+
+                    <!-- 战斗操作 -->
+                    <div class="battle-actions" id="battle-actions">
+                        <button class="battle-btn" onclick="game.battleAction('attack')">
+                            ⚔️ 普通攻击
+                        </button>
+                        <button class="battle-btn" onclick="game.battleAction('skill1')" id="skill-btn-1">
+                            💥 技能1
+                            <span class="sp-cost">SP: 10</span>
+                        </button>
+                        <button class="battle-btn" onclick="game.battleAction('skill2')" id="skill-btn-2">
+                            ✨ 技能2
+                            <span class="sp-cost">SP: 20</span>
+                        </button>
+                        <button class="battle-btn" onclick="game.battleAction('item')">
+                            🧪 使用道具
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 商店面板 -->
+        <div class="shop-panel" id="shop-panel">
+            <div class="shop-header">
+                <h2 style="color: var(--accent-blue);">🛒 商店</h2>
+                <div class="shop-money">💰 <span id="shop-money">500</span></div>
+            </div>
+            <div class="shop-items" id="shop-items"></div>
+            <button class="btn" onclick="game.closeShop()">关闭</button>
+        </div>
+
+        <!-- 技能面板 -->
+        <div class="skill-panel" id="skill-panel">
+            <h2 style="color: var(--accent-blue); margin-bottom: 20px;">⚔️ 技能管理</h2>
+
+            <h3 style="color: var(--text-secondary);">已装备技能 (最多4个)</h3>
+            <div class="equipped-skills" id="equipped-skills"></div>
+
+            <h3 style="color: var(--text-secondary); margin-top: 30px;">可用技能</h3>
+            <div class="available-skills" id="available-skills"></div>
+
+            <button class="btn" onclick="game.closeSkills()" style="margin-top: 20px;">关闭</button>
+        </div>
+
+        <!-- 通知 -->
+        <div class="notification" id="notification"></div>
+    </div>
+
+    <script>
+// ========== MindLink 完整游戏 ==========
+(function() {
+    'use strict';
+
+    // ========== 游戏数据 ==========
+    const GameData = {
+        // 技能数据
+        skills: {
+            'normal_attack': { id: 'normal_attack', name: '普通攻击', icon: '⚔️', cost: 0, power: 1.0, desc: '基础攻击', unlockLevel: 0 },
+            'power_strike': { id: 'power_strike', name: '强力一击', icon: '💥', cost: 10, power: 1.5, desc: '造成150%伤害', unlockLevel: 2 },
+            'mind_blast': { id: 'mind_blast', name: '精神冲击', icon: '✨', cost: 20, power: 2.0, desc: '造成200%伤害', unlockLevel: 4 },
+            'analyze': { id: 'analyze', name: '分析弱点', icon: '🔍', cost: 15, power: 0.5, desc: '降低敌人防御', unlockLevel: 3 },
+            'heal': { id: 'heal', name: '认知修复', icon: '💚', cost: 25, power: 0, healing: 0.3, desc: '恢复30%HP', unlockLevel: 5 },
+            'ultimate': { id: 'ultimate', name: '认知觉醒', icon: '💫', cost: 50, power: 3.0, desc: '终极攻击300%', unlockLevel: 7 }
+        },
+
+        // 道具数据
+        items: {
+            'heal_potion': { id: 'heal_potion', name: '恢复药剂', icon: '🧪', price: 100, effect: 'heal', value: 50, desc: '恢复50HP' },
+            'energy_drink': { id: 'energy_drink', name: '能量饮料', icon: '☕', price: 80, effect: 'restore_sp', value: 20, desc: '恢复20SP' },
+            'attack_boost': { id: 'attack_boost', name: '攻击强化', icon: '💊', price: 150, effect: 'boost_attack', value: 0.5, desc: '攻击力+50%' },
+            'defense_boost': { id: 'defense_boost', name: '防御强化', icon: '🛡️', price: 150, effect: 'boost_defense', value: 0.5, desc: '防御力+50%' },
+            'revive': { id: 'revive', name: '复活药剂', icon: '✨', price: 500, effect: 'revive', value: 0.5, desc: '复活并恢复50%HP' }
+        },
+
+        // 敌人数据
+        enemies: {
+            'shadow': { id: 'shadow', name: '阴影', sprite: '👤', maxHP: 50, attack: 10, exp: 20 },
+            'nightmare': { id: 'nightmare', name: '噩梦', sprite: '😈', maxHP: 80, attack: 15, exp: 40 },
+            'guardian': { id: 'guardian', name: '守卫者', sprite: '🤖', maxHP: 150, attack: 25, exp: 100 },
+            'hunter': { id: 'hunter', name: '认知猎人', sprite: '🦾', maxHP: 200, attack: 35, exp: 200 },
+            'boss_gu': { id: 'boss_gu', name: '顾寒川', sprite: '👨‍🔬', maxHP: 500, attack: 50, exp: 1000 }
+        },
+
+        // Day 1-15 对话（精简版）
+        dialogues: {
+            'day1_morning': {
+                id: 'day1_morning',
+                location: '卧室',
+                day: 1,
+                period: 0,
+                lines: [
+                    { speaker: null, text: '2045年11月1日，早晨6:30。\n\n你从梦中醒来。头痛欲裂。' },
+                    { speaker: '你', text: '（又是那个梦...）' },
+                    { speaker: null, text: 'MindLink设备在耳后微微发烫。\n\n突然，右手背出现了一道淡蓝色的光芒。' },
+                    { speaker: '你', text: '这是...什么？！' },
+                    { speaker: null, text: '三条交织的线条，像是某种符文。\n\n你知道，有什么改变了。' }
+                ],
+                rewards: { flags: ['awakening'] }
+            },
+            'day1_meet_akatsuki': {
+                id: 'day1_meet_akatsuki',
+                location: '学校门口',
+                day: 1,
+                period: 1,
+                lines: [
+                    { speaker: '晓', text: '早啊！又睡过头了吧？', sprite: '👧' },
+                    { speaker: '你', text: '晓...没有，只是起晚了一点。' },
+                    { speaker: '晓', text: '哈哈，还是老样子。对了，你的脸色看起来不太好？', sprite: '👧' },
+                    {
+                        speaker: '你',
+                        text: '其实...今天早上发生了一件奇怪的事。',
+                        choices: [
+                            { text: '告诉她手背上的光芒', value: 'tell', relationship: { akatsuki: 2 } },
+                            { text: '隐瞒这件事', value: 'hide', relationship: { akatsuki: 0 } }
+                        ]
+                    }
+                ],
+                branches: {
+                    'tell': [
+                        { speaker: '你', text: '我的手背上出现了光芒。' },
+                        { speaker: '晓', text: '光芒？...不会是认知崩溃吧？', sprite: '👧' },
+                        { speaker: '你', text: '应该不是。我感觉获得了什么能力。' },
+                        { speaker: '晓', text: '能力？听起来像科幻小说...不过如果你需要帮助，随时告诉我！', sprite: '👧' },
+                        { speaker: null, text: '晓的好感度上升了！' }
+                    ],
+                    'hide': [
+                        { speaker: '你', text: '就是普通的噩梦而已。' },
+                        { speaker: '晓', text: '是吗...那好吧。不过你有什么事一定要告诉我哦！', sprite: '👧' }
+                    ]
+                },
+                rewards: { flags: ['met_akatsuki'], relationship: { akatsuki: 1 } }
+            },
+            'day2_collapse': {
+                id: 'day2_collapse',
+                location: '教室',
+                day: 2,
+                period: 1,
+                lines: [
+                    { speaker: null, text: 'Day 2，下午。正常的一天，直到——' },
+                    { speaker: '同学', text: '啊啊啊！救命！' },
+                    { speaker: null, text: '一个同学突然倒地，身体剧烈颤抖。\n\n这是认知崩溃！' },
+                    { speaker: null, text: '你的右手背再次发光。\n\n你能"看到"黑色的雾气。' },
+                    { speaker: '神秘声音', text: '——你看到了，对吗？' },
+                    { speaker: '你', text: '谁？！' },
+                    { speaker: '神秘声音', text: '认知空间...那是人类内心的世界。\n\n而你，拥有进入那个世界的能力。' },
+                    { speaker: '神秘声音', text: '如果你想拯救他们...就学会使用这份力量吧。' }
+                ],
+                rewards: { flags: ['cognitive_revealed'] }
+            },
+            'day3_tutorial': {
+                id: 'day3_tutorial',
+                location: '认知空间',
+                day: 3,
+                period: 2,
+                lines: [
+                    { speaker: null, text: 'Day 3，夜晚。你决定尝试进入认知空间。' },
+                    { speaker: '你', text: '（专注...就像那个声音说的...）' },
+                    { speaker: null, text: '世界开始扭曲。你的意识被拉入了另一个维度。' },
+                    { speaker: '神秘声音', text: '很好。这就是认知空间的入口。' },
+                    { speaker: '神秘声音', text: '那是你内心的阴影...击败它。' }
+                ],
+                rewards: { flags: ['tutorial_done'], battle: 'shadow', items: ['heal_potion'] }
+            },
+            'day15_mission': {
+                id: 'day15_mission',
+                location: '扭曲的教室',
+                day: 15,
+                period: 2,
+                lines: [
+                    { speaker: null, text: 'Day 15。第一次拯救任务。' },
+                    { speaker: '晓', text: '准备好了吗？', sprite: '👧' },
+                    { speaker: '你', text: '嗯。我们一起，拯救他！' },
+                    { speaker: null, text: '你们进入了认知空间...战斗开始！' }
+                ],
+                rewards: { battle: 'guardian', money: 1000, items: ['heal_potion', 'attack_boost'] }
+            }
+        },
+
+        // 活动数据
+        activities: [
+            { id: 'study', name: '图书馆学习', desc: '提升知识', period: [1,2], effect: { knowledge: 5 } },
+            { id: 'train', name: '战斗训练', desc: '提升战斗力', period: [1,2], effect: { combat: 5 } },
+            { id: 'socialize', name: '社交活动', desc: '提升魅力', period: [1,2], effect: { charm: 5 } },
+            { id: 'adventure', name: '冒险活动', desc: '提升勇气', period: [1,2], effect: { courage: 5 } },
+            { id: 'morning_run', name: '晨跑', desc: '提升战斗力和勇气', period: [0], effect: { combat: 3, courage: 2 } },
+            { id: 'part_time', name: '打工', desc: '赚取金钱', period: [1], effect: { money: 200 } },
+            { id: 'rest', name: '休息', desc: '恢复SP', period: [0,1,2], effect: { sp: 30 } },
+            { id: 'advance', name: '推进时间', desc: '直接到下一时间段', period: [0,1,2], effect: {} }
+        ]
+    };
+
+    // ========== 游戏状态 ==========
+    class MindLinkGame {
+        constructor() {
+            this.day = 1;
+            this.period = 0; // 0=早晨, 1=下午, 2=夜晚
+            this.stats = {
+                knowledge: 1,
+                courage: 1,
+                charm: 1,
+                combat: 1,
+                money: 500,
+                sp: 100,
+                maxSP: 100
+            };
+            this.flags = new Set();
+            this.relationships = { akatsuki: 0, zero: 0, mizuki: 0 };
+            this.inventory = {}; // { itemId: count }
+            this.skills = ['normal_attack']; // 已解锁技能
+            this.equippedSkills = ['normal_attack']; // 已装备技能（最多4个）
+            this.soundEnabled = true;
+
+            // 对话系统
+            this.currentDialogue = null;
+            this.dialogueIndex = 0;
+            this.branch = null;
+
+            // 战斗系统
+            this.inBattle = false;
+            this.currentEnemy = null;
+            this.playerBattleHP = 100;
+            this.playerMaxHP = 100;
+            this.battleLog = [];
+
+            this.started = false;
+        }
+
+        // ========== 游戏流程 ==========
+        startGame() {
+            if (this.started) return;
+            this.started = true;
+            this.log('游戏开始！', true);
+            this.playSound('game_start');
+            this.checkDialogueTrigger();
+            this.updateUI();
+        }
+
+        // ========== 对话系统 ==========
+        checkDialogueTrigger() {
+            for (const [id, dialogue] of Object.entries(GameData.dialogues)) {
+                if (dialogue.day === this.day && dialogue.period === this.period) {
+                    // 检查条件
+                    if (dialogue.require && dialogue.require.flags) {
+                        let canTrigger = true;
+                        for (const flag of dialogue.require.flags) {
+                            if (!this.flags.has(flag)) {
+                                canTrigger = false;
+                                break;
+                            }
+                        }
+                        if (!canTrigger) continue;
+                    }
+
+                    this.startDialogue(dialogue);
+                    return;
+                }
+            }
+        }
+
+        startDialogue(dialogue) {
+            this.currentDialogue = dialogue;
+            this.dialogueIndex = 0;
+            this.branch = null;
+            this.showDialogue();
+        }
+
+        showDialogue() {
+            if (!this.currentDialogue) return;
+
+            const overlay = document.getElementById('dialogue-overlay');
+            overlay.classList.add('active');
+
+            const location = document.getElementById('dialogue-location');
+            location.textContent = this.currentDialogue.location;
+
+            this.showLine();
+        }
+
+        showLine() {
+            let lines = this.branch ?
+                (this.currentDialogue.branches[this.branch] || []) :
+                this.currentDialogue.lines;
+
+            if (this.dialogueIndex >= lines.length) {
+                this.endDialogue();
+                return;
+            }
+
+            const line = lines[this.dialogueIndex];
+            const speaker = document.getElementById('dialogue-speaker');
+            const text = document.getElementById('dialogue-text');
+            const choices = document.getElementById('dialogue-choices');
+            const continueBtn = document.getElementById('dialogue-continue');
+
+            speaker.textContent = line.speaker || '';
+            text.textContent = line.text || '';
+
+            // 显示角色立绘
+            const charLeft = document.getElementById('char-left');
+            const charRight = document.getElementById('char-right');
+            charLeft.textContent = '';
+            charRight.textContent = '';
+
+            if (line.sprite) {
+                if (line.speaker === '晓' || line.speaker === 'akatsuki') {
+                    charLeft.textContent = line.sprite;
+                } else {
+                    charRight.textContent = line.sprite;
+                }
+            }
+
+            this.playSound('dialogue');
+
+            choices.innerHTML = '';
+            if (line.choices) {
+                continueBtn.style.display = 'none';
+                line.choices.forEach((choice) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.textContent = choice.text;
+                    btn.onclick = () => this.makeChoice(choice);
+                    choices.appendChild(btn);
+                });
+            } else {
+                continueBtn.style.display = 'block';
+            }
+        }
+
+        makeChoice(choice) {
+            if (choice.relationship) {
+                for (const [char, value] of Object.entries(choice.relationship)) {
+                    this.relationships[char] = (this.relationships[char] || 0) + value;
+                    this.log(`${char} 好感度 +${value}`, true);
+                }
+            }
+
+            if (choice.value) {
+                this.branch = choice.value;
+                this.dialogueIndex = 0;
+            } else {
+                this.dialogueIndex++;
+            }
+
+            this.playSound('choice');
+            this.showLine();
+        }
+
+        continueDialogue() {
+            this.dialogueIndex++;
+            this.showLine();
+        }
+
+        endDialogue() {
+            const overlay = document.getElementById('dialogue-overlay');
+            overlay.classList.remove('active');
+
+            // 应用奖励
+            if (this.currentDialogue.rewards) {
+                const rewards = this.currentDialogue.rewards;
+
+                if (rewards.flags) {
+                    rewards.flags.forEach(flag => {
+                        this.flags.add(flag);
+                        this.log(`解锁: ${flag}`, true);
+                    });
+                }
+
+                ['knowledge', 'courage', 'charm', 'combat'].forEach(stat => {
+                    if (rewards[stat]) {
+                        this.stats[stat] += rewards[stat];
+                        this.log(`${stat} +${rewards[stat]}`, true);
+                    }
+                });
+
+                if (rewards.money) {
+                    this.stats.money += rewards.money;
+                    this.log(`金钱 +${rewards.money}`, true);
+                }
+
+                if (rewards.items) {
+                    rewards.items.forEach(itemId => {
+                        this.addItem(itemId, 1);
+                    });
+                }
+
+                if (rewards.relationship) {
+                    for (const [char, value] of Object.entries(rewards.relationship)) {
+                        this.relationships[char] = (this.relationships[char] || 0) + value;
+                        this.log(`${char} 好感度 +${value}`, true);
+                    }
+                }
+
+                // 触发战斗
+                if (rewards.battle) {
+                    const enemy = GameData.enemies[rewards.battle];
+                    if (enemy) {
+                        setTimeout(() => this.startBattle(enemy), 500);
+                        this.currentDialogue = null;
+                        this.updateUI();
+                        return;
+                    }
+                }
+            }
+
+            this.currentDialogue = null;
+            this.updateUI();
+            this.renderActions();
+        }
+
+        // ========== 战斗系统 ==========
+        startBattle(enemy) {
+            this.inBattle = true;
+            this.currentEnemy = {
+                ...enemy,
+                currentHP: enemy.maxHP
+            };
+
+            // 计算玩家战斗属性
+            this.playerMaxHP = 100 + this.stats.combat * 20;
+            this.playerBattleHP = this.playerMaxHP;
+            this.battleLog = [];
+
+            this.addBattleLog('战斗开始！', 'important');
+            this.addBattleLog(`${enemy.name} 出现了！`, 'important');
+
+            this.playSound('battle_start');
+            this.showBattleUI();
+        }
+
+        showBattleUI() {
+            const overlay = document.getElementById('battle-overlay');
+            overlay.classList.add('active');
+
+            this.updateBattleUI();
+        }
+
+        updateBattleUI() {
+            // 更新敌人
+            document.getElementById('enemy-sprite').textContent = this.currentEnemy.sprite;
+            document.getElementById('enemy-name').textContent = this.currentEnemy.name;
+
+            const enemyHPPercent = (this.currentEnemy.currentHP / this.currentEnemy.maxHP * 100);
+            document.getElementById('enemy-hp').style.width = enemyHPPercent + '%';
+            document.getElementById('enemy-hp-text').textContent =
+                `${this.currentEnemy.currentHP}/${this.currentEnemy.maxHP}`;
+
+            // 更新玩家
+            const playerHPPercent = (this.playerBattleHP / this.playerMaxHP * 100);
+            document.getElementById('player-hp').style.width = playerHPPercent + '%';
+            document.getElementById('player-hp-text').textContent =
+                `${this.playerBattleHP}/${this.playerMaxHP}`;
+            document.getElementById('battle-sp').textContent = this.stats.sp;
+
+            // 更新战斗日志
+            const logDiv = document.getElementById('battle-log');
+            logDiv.innerHTML = this.battleLog.map(log =>
+                `<div class="battle-log-entry ${log.type}">${log.text}</div>`
+            ).join('');
+            logDiv.scrollTop = logDiv.scrollHeight;
+
+            // 更新技能按钮
+            this.updateSkillButtons();
+        }
+
+        updateSkillButtons() {
+            const skills = this.equippedSkills.slice(1, 3); // 取前两个装备的技能（除了普通攻击）
+
+            for (let i = 0; i < 2; i++) {
+                const btn = document.getElementById(`skill-btn-${i+1}`);
+                if (!btn) continue;
+
+                const skillId = skills[i];
+                if (skillId && GameData.skills[skillId]) {
+                    const skill = GameData.skills[skillId];
+                    btn.innerHTML = `${skill.icon} ${skill.name}<span class="sp-cost">SP: ${skill.cost}</span>`;
+                    btn.disabled = this.stats.sp < skill.cost;
+                } else {
+                    btn.innerHTML = `❌ 未装备<span class="sp-cost">-</span>`;
+                    btn.disabled = true;
+                }
+            }
+        }
+
+        battleAction(action) {
+            if (!this.inBattle) return;
+
+            let damage = 0;
+            let spCost = 0;
+
+            if (action === 'attack') {
+                damage = this.calculateDamage(1.0);
+                this.addBattleLog(`你造成了 ${damage} 点伤害！`, 'damage');
+                this.playSound('attack');
+            } else if (action === 'skill1') {
+                const skillId = this.equippedSkills[1];
+                if (skillId && GameData.skills[skillId]) {
+                    const skill = GameData.skills[skillId];
+                    if (this.stats.sp >= skill.cost) {
+                        spCost = skill.cost;
+                        if (skill.healing) {
+                            const heal = Math.floor(this.playerMaxHP * skill.healing);
+                            this.playerBattleHP = Math.min(this.playerMaxHP, this.playerBattleHP + heal);
+                            this.addBattleLog(`${skill.name}！恢复了 ${heal} HP！`, 'heal');
+                        } else {
+                            damage = this.calculateDamage(skill.power);
+                            this.addBattleLog(`${skill.name}！造成了 ${damage} 点伤害！`, 'damage');
+                        }
+                        this.playSound('skill');
+                    } else {
+                        this.addBattleLog('SP不足！');
+                        this.updateBattleUI();
+                        return;
+                    }
+                }
+            } else if (action === 'skill2') {
+                const skillId = this.equippedSkills[2];
+                if (skillId && GameData.skills[skillId]) {
+                    const skill = GameData.skills[skillId];
+                    if (this.stats.sp >= skill.cost) {
+                        spCost = skill.cost;
+                        if (skill.healing) {
+                            const heal = Math.floor(this.playerMaxHP * skill.healing);
+                            this.playerBattleHP = Math.min(this.playerMaxHP, this.playerBattleHP + heal);
+                            this.addBattleLog(`${skill.name}！恢复了 ${heal} HP！`, 'heal');
+                        } else {
+                            damage = this.calculateDamage(skill.power);
+                            this.addBattleLog(`${skill.name}！造成了 ${damage} 点伤害！`, 'damage');
+                        }
+                        this.playSound('skill');
+                    } else {
+                        this.addBattleLog('SP不足！');
+                        this.updateBattleUI();
+                        return;
+                    }
+                }
+            } else if (action === 'item') {
+                if (this.inventory['heal_potion'] && this.inventory['heal_potion'] > 0) {
+                    this.inventory['heal_potion']--;
+                    const heal = 50;
+                    this.playerBattleHP = Math.min(this.playerMaxHP, this.playerBattleHP + heal);
+                    this.addBattleLog(`使用了恢复药剂！恢复了 ${heal} HP！`, 'heal');
+                    this.playSound('item');
+                } else {
+                    this.addBattleLog('没有道具！');
+                    this.updateBattleUI();
+                    return;
+                }
+            }
+
+            // 扣除SP
+            this.stats.sp = Math.max(0, this.stats.sp - spCost);
+
+            // 对敌人造成伤害
+            this.currentEnemy.currentHP -= damage;
+
+            // 检查敌人是否死亡
+            if (this.currentEnemy.currentHP <= 0) {
+                this.battleVictory();
+                return;
+            }
+
+            // 敌人回合
+            setTimeout(() => this.enemyTurn(), 800);
+        }
+
+        calculateDamage(multiplier) {
+            const baseAttack = 10 + this.stats.combat * 5;
+            return Math.floor(baseAttack * multiplier * (0.8 + Math.random() * 0.4));
+        }
+
+        enemyTurn() {
+            const damage = Math.floor(this.currentEnemy.attack * (0.8 + Math.random() * 0.4));
+            this.playerBattleHP -= damage;
+            this.addBattleLog(`${this.currentEnemy.name} 攻击了你，造成 ${damage} 点伤害！`, 'damage');
+            this.playSound('hit');
+
+            // 检查玩家是否死亡
+            if (this.playerBattleHP <= 0) {
+                this.battleDefeat();
+            } else {
+                this.updateBattleUI();
+            }
+        }
+
+        battleVictory() {
+            this.addBattleLog(`${this.currentEnemy.name} 被击败了！`, 'important');
+            this.addBattleLog('战斗胜利！', 'important');
+
+            const exp = this.currentEnemy.exp || 50;
+            this.stats.combat += Math.floor(exp / 50);
+            this.stats.money += exp;
+
+            this.log(`获得经验！战斗力 +${Math.floor(exp / 50)}`, true);
+            this.log(`获得金钱 ${exp}`, true);
+
+            this.playSound('victory');
+
+            setTimeout(() => this.endBattle(), 2000);
+        }
+
+        battleDefeat() {
+            this.addBattleLog('你被击败了...', 'important');
+            this.playSound('defeat');
+
+            setTimeout(() => {
+                this.endBattle();
+                this.stats.money = Math.floor(this.stats.money * 0.8);
+                this.log('损失了20%金钱...', true);
+            }, 2000);
+        }
+
+        endBattle() {
+            this.inBattle = false;
+            this.currentEnemy = null;
+            this.battleLog = [];
+
+            const overlay = document.getElementById('battle-overlay');
+            overlay.classList.remove('active');
+
+            // 恢复SP
+            this.stats.sp = Math.min(this.stats.maxSP, this.stats.sp + 20);
+
+            this.updateUI();
+            this.renderActions();
+        }
+
+        addBattleLog(text, type = '') {
+            this.battleLog.push({ text, type });
+            if (this.battleLog.length > 8) {
+                this.battleLog.shift();
+            }
+        }
+
+        // ========== 活动系统 ==========
+        doActivity(activity) {
+            this.log(`执行活动: ${activity.name}`);
+            this.playSound('activity');
+
+            if (activity.effect) {
+                for (const [stat, value] of Object.entries(activity.effect)) {
+                    if (this.stats[stat] !== undefined) {
+                        this.stats[stat] += value;
+                        this.log(`${stat} +${value}`);
+                    }
+                }
+            }
+
+            this.advanceTime();
+        }
+
+        advanceTime() {
+            this.period++;
+            if (this.period >= 3) {
+                this.period = 0;
+                this.day++;
+                this.stats.sp = this.stats.maxSP; // 新的一天恢复SP
+                this.log(`===== Day ${this.day} =====`, true);
+
+                // 解锁技能
+                this.checkSkillUnlock();
+            }
+
+            this.updateUI();
+            this.renderActions();
+            this.checkDialogueTrigger();
+        }
+
+        checkSkillUnlock() {
+            for (const [id, skill] of Object.entries(GameData.skills)) {
+                if (!this.skills.includes(id) && this.stats.combat >= skill.unlockLevel) {
+                    this.skills.push(id);
+                    this.notify(`🎉 解锁新技能: ${skill.name}`);
+                }
+            }
+        }
+
+        renderActions() {
+            const list = document.getElementById('action-list');
+            list.innerHTML = '';
+
+            const periodNames = ['早晨', '下午', '夜晚'];
+            document.getElementById('time-period').textContent = periodNames[this.period];
+
+            GameData.activities.forEach(activity => {
+                if (activity.period.includes(this.period)) {
+                    const card = document.createElement('div');
+                    card.className = 'action-card';
+                    card.innerHTML = `
+                        <div class="action-title">${activity.name}</div>
+                        <div class="action-desc">${activity.desc}</div>
+                    `;
+                    card.onclick = () => this.doActivity(activity);
+                    list.appendChild(card);
+                }
+            });
+        }
+
+        // ========== 商店系统 ==========
+        openShop() {
+            document.getElementById('shop-panel').classList.add('active');
+            this.renderShop();
+        }
+
+        closeShop() {
+            document.getElementById('shop-panel').classList.remove('active');
+        }
+
+        renderShop() {
+            const itemsDiv = document.getElementById('shop-items');
+            const moneySpan = document.getElementById('shop-money');
+
+            moneySpan.textContent = this.stats.money;
+
+            itemsDiv.innerHTML = '';
+            for (const [id, item] of Object.entries(GameData.items)) {
+                const owned = this.inventory[id] || 0;
+                const card = document.createElement('div');
+                card.className = 'shop-item' + (owned > 0 ? ' owned' : '');
+                card.innerHTML = `
+                    <div class="shop-item-icon">${item.icon}</div>
+                    <div class="shop-item-name">${item.name}</div>
+                    <div class="shop-item-desc">${item.desc}</div>
+                    <div class="shop-item-price">💰 ${item.price}</div>
+                    ${owned > 0 ? `<div class="shop-item-count">拥有: ${owned}</div>` : ''}
+                `;
+                card.onclick = () => this.buyItem(id);
+                itemsDiv.appendChild(card);
+            }
+        }
+
+        buyItem(itemId) {
+            const item = GameData.items[itemId];
+            if (!item) return;
+
+            if (this.stats.money >= item.price) {
+                this.stats.money -= item.price;
+                this.addItem(itemId, 1);
+                this.notify(`✅ 购买成功: ${item.name}`);
+                this.playSound('buy');
+                this.renderShop();
+                this.updateUI();
+            } else {
+                this.notify('❌ 金钱不足！');
+                this.playSound('error');
+            }
+        }
+
+        addItem(itemId, count) {
+            this.inventory[itemId] = (this.inventory[itemId] || 0) + count;
+            this.log(`获得道具: ${GameData.items[itemId].name} x${count}`, true);
+        }
+
+        // ========== 技能系统 ==========
+        openSkills() {
+            document.getElementById('skill-panel').classList.add('active');
+            this.renderSkills();
+        }
+
+        closeSkills() {
+            document.getElementById('skill-panel').classList.remove('active');
+        }
+
+        renderSkills() {
+            // 渲染已装备技能
+            const equippedDiv = document.getElementById('equipped-skills');
+            equippedDiv.innerHTML = '';
+
+            for (let i = 0; i < 4; i++) {
+                const skillId = this.equippedSkills[i];
+                const slot = document.createElement('div');
+                slot.className = 'skill-slot' + (skillId ? '' : ' empty');
+
+                if (skillId && GameData.skills[skillId]) {
+                    const skill = GameData.skills[skillId];
+                    slot.innerHTML = `
+                        <div class="skill-icon">${skill.icon}</div>
+                        <div class="skill-name">${skill.name}</div>
+                        <div class="skill-cost">SP: ${skill.cost}</div>
+                    `;
+                    slot.onclick = () => this.unequipSkill(i);
+                } else {
+                    slot.innerHTML = `
+                        <div class="skill-icon">❓</div>
+                        <div class="skill-name">空槽位</div>
+                    `;
+                }
+
+                equippedDiv.appendChild(slot);
+            }
+
+            // 渲染可用技能
+            const availableDiv = document.getElementById('available-skills');
+            availableDiv.innerHTML = '';
+
+            for (const skillId of this.skills) {
+                const skill = GameData.skills[skillId];
+                if (!skill) continue;
+
+                const isEquipped = this.equippedSkills.includes(skillId);
+                const card = document.createElement('div');
+                card.className = 'skill-card' + (isEquipped ? ' equipped' : '');
+                card.innerHTML = `
+                    <div class="skill-icon">${skill.icon}</div>
+                    <div class="skill-name">${skill.name}</div>
+                    <div class="skill-desc">${skill.desc}</div>
+                    <div class="skill-cost">SP: ${skill.cost}</div>
+                    ${isEquipped ? '<div style="color: var(--success-color); margin-top: 5px;">✓ 已装备</div>' : ''}
+                `;
+
+                if (!isEquipped) {
+                    card.onclick = () => this.equipSkill(skillId);
+                }
+
+                availableDiv.appendChild(card);
+            }
+        }
+
+        equipSkill(skillId) {
+            if (this.equippedSkills.length >= 4) {
+                this.notify('❌ 技能槽已满！请先卸下其他技能');
+                return;
+            }
+
+            if (!this.equippedSkills.includes(skillId)) {
+                this.equippedSkills.push(skillId);
+                this.notify(`✅ 装备技能: ${GameData.skills[skillId].name}`);
+                this.playSound('equip');
+                this.renderSkills();
+            }
+        }
+
+        unequipSkill(index) {
+            if (index === 0) {
+                this.notify('❌ 普通攻击无法卸下');
+                return;
+            }
+
+            if (this.equippedSkills[index]) {
+                const skill = GameData.skills[this.equippedSkills[index]];
+                this.notify(`卸下技能: ${skill.name}`);
+                this.equippedSkills.splice(index, 1);
+                this.playSound('equip');
+                this.renderSkills();
+            }
+        }
+
+        // ========== UI更新 ==========
+        updateUI() {
+            document.getElementById('current-day').textContent = this.day;
+            document.getElementById('knowledge').textContent = this.stats.knowledge;
+            document.getElementById('courage').textContent = this.stats.courage;
+            document.getElementById('charm').textContent = this.stats.charm;
+            document.getElementById('combat').textContent = this.stats.combat;
+            document.getElementById('money').textContent = this.stats.money;
+            document.getElementById('sp').textContent = this.stats.sp;
+        }
+
+        log(message, important = false) {
+            const logDiv = document.getElementById('game-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry' + (important ? ' important' : '');
+            entry.textContent = message;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+
+            // 限制日志条数
+            while (logDiv.children.length > 50) {
+                logDiv.removeChild(logDiv.firstChild);
+            }
+        }
+
+        notify(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 2000);
+        }
+
+        // ========== 音效系统 ==========
+        playSound(soundId) {
+            if (!this.soundEnabled) return;
+
+            // 这里可以集成 Web Audio API 或 Howler.js
+            // 现在只是控制台输出
+            console.log(`🔊 Playing sound: ${soundId}`);
+
+            // 示例：使用简单的音频元素
+            // const audio = new Audio(`sounds/${soundId}.mp3`);
+            // audio.play().catch(e => console.log('Audio play failed:', e));
+        }
+
+        toggleSound() {
+            this.soundEnabled = !this.soundEnabled;
+            document.getElementById('sound-toggle').textContent = this.soundEnabled ? '🔊' : '🔇';
+            this.notify(this.soundEnabled ? '音效已开启' : '音效已关闭');
+        }
+
+        // ========== 存档系统 ==========
+        save() {
+            const saveData = {
+                day: this.day,
+                period: this.period,
+                stats: this.stats,
+                flags: Array.from(this.flags),
+                relationships: this.relationships,
+                inventory: this.inventory,
+                skills: this.skills,
+                equippedSkills: this.equippedSkills
+            };
+
+            localStorage.setItem('mindlink_save', JSON.stringify(saveData));
+            this.notify('💾 游戏已保存！');
+            this.playSound('save');
+        }
+
+        load() {
+            const saveData = localStorage.getItem('mindlink_save');
+            if (saveData) {
+                const data = JSON.parse(saveData);
+                this.day = data.day;
+                this.period = data.period;
+                this.stats = data.stats;
+                this.flags = new Set(data.flags);
+                this.relationships = data.relationships;
+                this.inventory = data.inventory;
+                this.skills = data.skills;
+                this.equippedSkills = data.equippedSkills;
+
+                this.started = true;
+                this.updateUI();
+                this.renderActions();
+                this.notify('📂 游戏已读取！');
+                this.playSound('load');
+            } else {
+                this.notify('❌ 没有存档！');
+                this.playSound('error');
+            }
+        }
+    }
+
+    // ========== 初始化 ==========
+    window.game = new MindLinkGame();
+    window.game.renderActions();
+
+    // 音效开关
+    document.getElementById('sound-toggle').addEventListener('click', () => {
+        window.game.toggleSound();
+    });
+
+})();
+    </script>
+</body>
+</html>
