@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindLink - Day 1-15 Demo</title>
+    <style>
+/* 使用之前的CSS... */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    --primary-bg: #0a0e27;
+    --secondary-bg: #151932;
+    --accent-blue: #00d4ff;
+    --accent-purple: #9d4edd;
+    --accent-pink: #ff006e;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --border-color: #2d3561;
+    --success-color: #06ffa5;
+    --warning-color: #ffbe0b;
+    --danger-color: #ff006e;
+    --pixel-font: 'Courier New', monospace;
+}
+
+body {
+    font-family: var(--pixel-font);
+    background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+#game-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background-color: var(--primary-bg);
+    box-shadow: 0 0 50px rgba(0, 212, 255, 0.3);
+    padding: 20px;
+}
+
+/* 对话框 UI */
+.dialogue-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 14, 39, 0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.dialogue-overlay.active {
+    display: flex;
+}
+
+.dialogue-box {
+    width: 90%;
+    max-width: 800px;
+    background: var(--secondary-bg);
+    border: 3px solid var(--accent-blue);
+    padding: 30px;
+    box-shadow: 0 0 50px rgba(0, 212, 255, 0.5);
+}
+
+.dialogue-location {
+    color: var(--accent-purple);
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.dialogue-speaker {
+    color: var(--accent-blue);
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.dialogue-text {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    line-height: 1.8;
+    margin-bottom: 20px;
+    min-height: 100px;
+    white-space: pre-wrap;
+}
+
+.dialogue-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.choice-btn {
+    background: var(--primary-bg);
+    border: 2px solid var(--accent-blue);
+    color: var(--text-primary);
+    padding: 15px;
+    font-family: var(--pixel-font);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: left;
+}
+
+.choice-btn:hover {
+    background: var(--accent-blue);
+    color: var(--primary-bg);
+    transform: translateX(10px);
+}
+
+.dialogue-continue {
+    background: var(--accent-blue);
+    border: none;
+    color: var(--primary-bg);
+    padding: 12px 30px;
+    font-family: var(--pixel-font);
+    font-size: 1rem;
+    cursor: pointer;
+    float: right;
+    transition: all 0.3s;
+}
+
+.dialogue-continue:hover {
+    transform: scale(1.05);
+}
+
+/* 游戏UI */
+.game-header {
+    background: var(--secondary-bg);
+    border: 2px solid var(--border-color);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.day-display {
+    font-size: 2rem;
+    color: var(--accent-blue);
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.stat-item {
+    background: var(--primary-bg);
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    text-align: center;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.stat-value {
+    color: var(--accent-blue);
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+/* 按钮 */
+.btn {
+    background: var(--secondary-bg);
+    border: 2px solid var(--accent-blue);
+    color: var(--accent-blue);
+    padding: 15px 30px;
+    font-family: var(--pixel-font);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin: 10px;
+}
+
+.btn:hover {
+    background: var(--accent-blue);
+    color: var(--primary-bg);
+    transform: translateY(-2px);
+}
+
+.btn-primary {
+    background: var(--accent-blue);
+    color: var(--primary-bg);
+}
+
+.action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.action-card {
+    background: var(--secondary-bg);
+    border: 2px solid var(--border-color);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.action-card:hover {
+    border-color: var(--accent-blue);
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0, 212, 255, 0.3);
+}
+
+.action-title {
+    color: var(--accent-blue);
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.action-desc {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.log {
+    background: var(--secondary-bg);
+    border: 2px solid var(--border-color);
+    padding: 20px;
+    margin-top: 20px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.log-entry {
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    padding: 5px;
+    border-left: 2px solid var(--accent-purple);
+    padding-left: 10px;
+}
+
+.log-entry.important {
+    color: var(--accent-blue);
+    border-left-color: var(--accent-blue);
+}
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--accent-blue);
+    color: var(--primary-bg);
+    padding: 15px 25px;
+    border-radius: 5px;
+    font-size: 1rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 2000;
+    pointer-events: none;
+}
+
+.notification.show {
+    opacity: 1;
+}
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div class="game-header">
+            <div class="day-display">
+                Day <span id="current-day">1</span> - <span id="time-period">早晨</span>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">知识</div>
+                    <div class="stat-value" id="knowledge">1</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">勇气</div>
+                    <div class="stat-value" id="courage">1</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">魅力</div>
+                    <div class="stat-value" id="charm">1</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">战斗力</div>
+                    <div class="stat-value" id="combat">1</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">💰 金钱</div>
+                    <div class="stat-value" id="money">500</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="main-content">
+            <h2 style="color: var(--accent-blue); margin-bottom: 20px;">选择活动</h2>
+            <div class="action-grid" id="action-list"></div>
+        </div>
+
+        <div class="log" id="game-log">
+            <div class="log-entry important">欢迎来到 MindLink Day 1-15 演示版</div>
+            <div class="log-entry">这个版本包含完整的Day 1-15剧情体验</div>
+            <div class="log-entry">包括：对话系统、技能系统、道具系统</div>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="btn btn-primary" onclick="game.startGame()">开始游戏</button>
+            <button class="btn" onclick="game.skipToDay(5)">跳到Day 5</button>
+            <button class="btn" onclick="game.skipToDay(14)">跳到Day 14</button>
+        </div>
+    </div>
+
+    <!-- 对话框 Overlay -->
+    <div class="dialogue-overlay" id="dialogue-overlay">
+        <div class="dialogue-box">
+            <div class="dialogue-location" id="dialogue-location"></div>
+            <div class="dialogue-speaker" id="dialogue-speaker"></div>
+            <div class="dialogue-text" id="dialogue-text"></div>
+            <div class="dialogue-choices" id="dialogue-choices"></div>
+            <button class="dialogue-continue" id="dialogue-continue" onclick="game.continueDialogue()">
+                继续 →
+            </button>
+        </div>
+    </div>
+
+    <!-- 通知 -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+// MindLink Day 1-15 Demo
+(function() {
+    'use strict';
+
+    // 游戏数据
+    const GameData = {
+        // Day 1-14 剧情事件
+        dialogues: {
+            day1_morning: {
+                id: 'day1_morning',
+                location: '卧室',
+                day: 1,
+                period: 0,
+                lines: [
+                    { speaker: 'System', text: '2045年11月1日，早晨6:30。\n\n你从梦中醒来。头痛欲裂。' },
+                    { speaker: '你', text: '（又是那个梦...为什么我总是梦到那些奇怪的景象？）' },
+                    { speaker: 'System', text: 'MindLink设备在耳后微微发烫。\n\n突然，右手背出现了一道淡蓝色的光芒。' },
+                    { speaker: '你', text: '这是...什么？！' },
+                    { speaker: 'System', text: '三条交织的线条，像是某种符文。\n\n你知道，有什么改变了。' }
+                ],
+                rewards: { flags: ['awakening'] }
+            },
+
+            day1_meet_akatsuki: {
+                id: 'day1_meet_akatsuki',
+                location: '学校门口',
+                day: 1,
+                period: 1,
+                lines: [
+                    { speaker: '晓', text: '早啊！又睡过头了吧？' },
+                    { speaker: '你', text: '晓...没有，只是起晚了一点。' },
+                    { speaker: '晓', text: '哈哈，还是老样子。对了，你的脸色看起来不太好？' },
+                    {
+                        speaker: '你',
+                        text: '其实...今天早上发生了一件奇怪的事。',
+                        choices: [
+                            { text: '告诉她手背上的光芒', value: 'tell', relationship: 2 },
+                            { text: '隐瞒这件事', value: 'hide', relationship: 0 }
+                        ]
+                    }
+                ],
+                branches: {
+                    tell: [
+                        { speaker: '你', text: '我的手背上出现了光芒。' },
+                        { speaker: '晓', text: '光芒？...不会是认知崩溃吧？' },
+                        { speaker: '你', text: '应该不是。我感觉获得了什么能力。' },
+                        { speaker: '晓', text: '能力？听起来像科幻小说...不过如果你需要帮助，随时告诉我！' },
+                        { speaker: 'System', text: '晓的好感度上升了！' }
+                    ],
+                    hide: [
+                        { speaker: '你', text: '就是普通的噩梦而已。' },
+                        { speaker: '晓', text: '是吗...那好吧。不过你有什么事一定要告诉我哦！' }
+                    ]
+                },
+                rewards: { flags: ['met_akatsuki'], relationship: { akatsuki: 1 } }
+            },
+
+            day2_collapse: {
+                id: 'day2_collapse',
+                location: '教室',
+                day: 2,
+                period: 1,
+                lines: [
+                    { speaker: 'System', text: 'Day 2，下午。正常的一天，直到——' },
+                    { speaker: '同学', text: '啊啊啊！救命！' },
+                    { speaker: 'System', text: '一个同学突然倒地，身体剧烈颤抖。\n\n这是认知崩溃！' },
+                    { speaker: 'System', text: '你的右手背再次发光。\n\n你能"看到"黑色的雾气。' },
+                    { speaker: '神秘声音', text: '——你看到了，对吗？' },
+                    { speaker: '你', text: '谁？！' },
+                    { speaker: '神秘声音', text: '认知空间...那是人类内心的世界。\n\n而你，拥有进入那个世界的能力。' },
+                    { speaker: '神秘声音', text: '如果你想拯救他们...就学会使用这份力量吧。' },
+                    { speaker: 'System', text: '声音消失了。\n\n你的人生从此改变了。' }
+                ],
+                rewards: { flags: ['cognitive_revealed'] }
+            },
+
+            day3_tutorial: {
+                id: 'day3_tutorial',
+                location: '认知空间',
+                day: 3,
+                period: 2,
+                lines: [
+                    { speaker: 'System', text: 'Day 3，夜晚。你决定尝试进入认知空间。' },
+                    { speaker: '你', text: '（专注...就像那个声音说的...）' },
+                    { speaker: 'System', text: '世界开始扭曲。你的意识被拉入了另一个维度。' },
+                    { speaker: '神秘声音', text: '很好。这就是认知空间的入口。' },
+                    { speaker: '神秘声音', text: '那是你内心的阴影...击败它。' }
+                ],
+                rewards: { flags: ['tutorial_done'], combat: 2 }
+            },
+
+            day5_meet_zero: {
+                id: 'day5_meet_zero',
+                location: '地下网吧',
+                day: 5,
+                period: 2,
+                lines: [
+                    { speaker: 'System', text: '你来到一个地下网吧。' },
+                    { speaker: '零', text: '你就是那个"世界线观测者"？' },
+                    { speaker: '你', text: '你是谁？你怎么知道...？' },
+                    { speaker: '零', text: '我的代号是零。我入侵了NeuroCorp的数据库。' },
+                    { speaker: '零', text: '他们在寻找一个特殊的个体...就是你。' },
+                    { speaker: '零', text: '我可以帮你...如果你也帮我。' }
+                ],
+                rewards: { flags: ['met_zero'], relationship: { zero: 1 } }
+            },
+
+            day7_meet_mizuki: {
+                id: 'day7_meet_mizuki',
+                location: '学生会室',
+                day: 7,
+                period: 1,
+                lines: [
+                    { speaker: '美月', text: '你好，我是学生会长，风见美月。' },
+                    { speaker: '美月', text: '我听说...你似乎对认知崩溃事件很感兴趣。' },
+                    { speaker: '美月', text: '我的家族...和NeuroCorp有些联系。我可以提供情报。' },
+                    { speaker: '美月', text: '我需要你...保护某个人。学生会的副会长，她可能是认知崩溃的前兆。' }
+                ],
+                rewards: { flags: ['met_mizuki'], relationship: { mizuki: 1 } }
+            },
+
+            day10_prep: {
+                id: 'day10_prep',
+                location: '秘密基地',
+                day: 10,
+                period: 2,
+                lines: [
+                    { speaker: '零', text: '我找到了Day 15目标的认知空间坐标。' },
+                    { speaker: '晓', text: '那我们还等什么？现在就去！' },
+                    { speaker: '你', text: '等等...我们需要准备。' },
+                    { speaker: '零', text: '你至少需要战斗力Lv2，还要准备一些道具。' },
+                    { speaker: '晓', text: '那我们赶紧训练！还有5天时间。' }
+                ],
+                rewards: { items: ['heal_potion', 'energy_drink'] }
+            },
+
+            day14_eve: {
+                id: 'day14_eve',
+                location: '屋顶',
+                day: 14,
+                period: 2,
+                lines: [
+                    { speaker: 'System', text: 'Day 14，夜晚。明天就是Day 15...第一次拯救任务。' },
+                    { speaker: '晓', text: '睡不着吗？' },
+                    { speaker: '你', text: '晓？你怎么在这里？' },
+                    { speaker: '晓', text: '我也睡不着...在想明天的事。' },
+                    { speaker: '你', text: '你不用去的...太危险了。' },
+                    { speaker: '晓', text: '我说过了，我要和你并肩作战！' },
+                    { speaker: '晓', text: '而且...我相信你。你一定能拯救那个同学的。' },
+                    { speaker: 'System', text: '星空下，你们立下了约定。Day 15，即将到来。' }
+                ],
+                rewards: { relationship: { akatsuki: 2 } }
+            },
+
+            day15_mission: {
+                id: 'day15_mission',
+                location: '扭曲的教室',
+                day: 15,
+                period: 2,
+                lines: [
+                    { speaker: 'System', text: 'Day 15。最终决战。' },
+                    { speaker: '晓', text: '准备好了吗？' },
+                    { speaker: '你', text: '嗯。我们一起，拯救他！' },
+                    { speaker: 'System', text: '你们进入了认知空间...战斗开始！' }
+                ],
+                rewards: { combat: 3, money: 1000, items: ['heal_potion', 'attack_boost'] }
+            }
+        },
+
+        activities: [
+            {
+                id: 'study',
+                name: '图书馆学习',
+                desc: '提升知识',
+                period: [1, 2],
+                effect: { knowledge: 5 }
+            },
+            {
+                id: 'train',
+                name: '战斗训练',
+                desc: '提升战斗力',
+                period: [1, 2],
+                effect: { combat: 5 }
+            },
+            {
+                id: 'socialize',
+                name: '社交活动',
+                desc: '提升魅力',
+                period: [1, 2],
+                effect: { charm: 5 }
+            },
+            {
+                id: 'adventure',
+                name: '冒险活动',
+                desc: '提升勇气',
+                period: [1, 2],
+                effect: { courage: 5 }
+            },
+            {
+                id: 'morning_run',
+                name: '晨跑',
+                desc: '提升战斗力和勇气',
+                period: [0],
+                effect: { combat: 3, courage: 2 }
+            },
+            {
+                id: 'part_time',
+                name: '打工',
+                desc: '赚取金钱',
+                period: [1],
+                effect: { money: 200 }
+            },
+            {
+                id: 'hang_akatsuki',
+                name: '和晓一起',
+                desc: '提升与晓的关系',
+                period: [1, 2],
+                effect: { relationship: { akatsuki: 1 }, charm: 2 },
+                require: { flags: ['met_akatsuki'] }
+            },
+            {
+                id: 'advance_time',
+                name: '推进时间',
+                desc: '什么都不做，直接到下一个时间段',
+                period: [0, 1, 2],
+                effect: {}
+            }
+        ]
+    };
+
+    // 游戏状态
+    class Game {
+        constructor() {
+            this.day = 1;
+            this.period = 0; // 0=早晨, 1=下午, 2=夜晚
+            this.stats = {
+                knowledge: 1,
+                courage: 1,
+                charm: 1,
+                combat: 1,
+                money: 500
+            };
+            this.flags = new Set();
+            this.relationships = { akatsuki: 0, zero: 0, mizuki: 0 };
+            this.currentDialogue = null;
+            this.dialogueIndex = 0;
+            this.branch = null;
+        }
+
+        startGame() {
+            this.log('游戏开始！', true);
+            this.checkDialogueTrigger();
+            this.updateUI();
+        }
+
+        skipToDay(targetDay) {
+            this.day = targetDay;
+            this.period = 0;
+            this.stats.combat = Math.floor(targetDay / 3);
+            this.stats.knowledge = Math.floor(targetDay / 3);
+            this.updateUI();
+            this.log(`跳到 Day ${targetDay}`, true);
+            this.checkDialogueTrigger();
+        }
+
+        checkDialogueTrigger() {
+            for (const [id, dialogue] of Object.entries(GameData.dialogues)) {
+                if (dialogue.day === this.day && dialogue.period === this.period) {
+                    // 检查flags
+                    let canTrigger = true;
+                    if (dialogue.require && dialogue.require.flags) {
+                        for (const flag of dialogue.require.flags) {
+                            if (!this.flags.has(flag)) {
+                                canTrigger = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (canTrigger) {
+                        this.startDialogue(dialogue);
+                        return;
+                    }
+                }
+            }
+        }
+
+        startDialogue(dialogue) {
+            this.currentDialogue = dialogue;
+            this.dialogueIndex = 0;
+            this.branch = null;
+            this.showDialogue();
+        }
+
+        showDialogue() {
+            if (!this.currentDialogue) return;
+
+            const overlay = document.getElementById('dialogue-overlay');
+            overlay.classList.add('active');
+
+            const location = document.getElementById('dialogue-location');
+            location.textContent = this.currentDialogue.location;
+
+            this.showLine();
+        }
+
+        showLine() {
+            let lines = this.branch ?
+                (this.currentDialogue.branches[this.branch] || []) :
+                this.currentDialogue.lines;
+
+            if (this.dialogueIndex >= lines.length) {
+                this.endDialogue();
+                return;
+            }
+
+            const line = lines[this.dialogueIndex];
+            const speaker = document.getElementById('dialogue-speaker');
+            const text = document.getElementById('dialogue-text');
+            const choices = document.getElementById('dialogue-choices');
+            const continueBtn = document.getElementById('dialogue-continue');
+
+            speaker.textContent = line.speaker || '';
+            text.textContent = line.text || '';
+
+            choices.innerHTML = '';
+            if (line.choices) {
+                continueBtn.style.display = 'none';
+                line.choices.forEach((choice, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.textContent = choice.text;
+                    btn.onclick = () => this.makeChoice(choice);
+                    choices.appendChild(btn);
+                });
+            } else {
+                continueBtn.style.display = 'block';
+            }
+        }
+
+        makeChoice(choice) {
+            if (choice.relationship) {
+                // 增加好感度
+                this.log(`${choice.text} (好感度 +${choice.relationship})`, true);
+            }
+
+            if (choice.value) {
+                this.branch = choice.value;
+                this.dialogueIndex = 0;
+            } else {
+                this.dialogueIndex++;
+            }
+
+            this.showLine();
+        }
+
+        continueDialogue() {
+            this.dialogueIndex++;
+            this.showLine();
+        }
+
+        endDialogue() {
+            const overlay = document.getElementById('dialogue-overlay');
+            overlay.classList.remove('active');
+
+            // 应用奖励
+            if (this.currentDialogue.rewards) {
+                const rewards = this.currentDialogue.rewards;
+
+                if (rewards.flags) {
+                    rewards.flags.forEach(flag => {
+                        this.flags.add(flag);
+                        this.log(`解锁: ${flag}`, true);
+                    });
+                }
+
+                if (rewards.combat) {
+                    this.stats.combat += rewards.combat;
+                    this.log(`战斗力 +${rewards.combat}`, true);
+                }
+
+                if (rewards.relationship) {
+                    for (const [char, value] of Object.entries(rewards.relationship)) {
+                        this.relationships[char] = (this.relationships[char] || 0) + value;
+                        this.log(`${char} 好感度 +${value}`, true);
+                    }
+                }
+
+                if (rewards.items) {
+                    rewards.items.forEach(item => {
+                        this.log(`获得道具: ${item}`, true);
+                    });
+                }
+
+                if (rewards.money) {
+                    this.stats.money += rewards.money;
+                    this.log(`获得金钱: ${rewards.money}`, true);
+                }
+            }
+
+            this.currentDialogue = null;
+            this.updateUI();
+            this.renderActions();
+        }
+
+        doActivity(activity) {
+            this.log(`执行活动: ${activity.name}`);
+
+            if (activity.effect) {
+                for (const [stat, value] of Object.entries(activity.effect)) {
+                    if (stat === 'money') {
+                        this.stats.money += value;
+                        this.log(`金钱 ${value > 0 ? '+' : ''}${value}`);
+                    } else if (stat === 'relationship') {
+                        for (const [char, rel] of Object.entries(value)) {
+                            this.relationships[char] = (this.relationships[char] || 0) + rel;
+                            this.log(`${char} 好感度 +${rel}`);
+                        }
+                    } else if (this.stats[stat] !== undefined) {
+                        this.stats[stat] += value;
+                        this.log(`${stat} +${value}`);
+                    }
+                }
+            }
+
+            this.advanceTime();
+        }
+
+        advanceTime() {
+            this.period++;
+            if (this.period >= 3) {
+                this.period = 0;
+                this.day++;
+                this.log(`===== Day ${this.day} =====`, true);
+            }
+
+            this.updateUI();
+            this.renderActions();
+            this.checkDialogueTrigger();
+        }
+
+        renderActions() {
+            const list = document.getElementById('action-list');
+            list.innerHTML = '';
+
+            const periodNames = ['早晨', '下午', '夜晚'];
+            document.getElementById('time-period').textContent = periodNames[this.period];
+
+            GameData.activities.forEach(activity => {
+                if (activity.period.includes(this.period)) {
+                    // 检查要求
+                    if (activity.require && activity.require.flags) {
+                        let canDo = true;
+                        for (const flag of activity.require.flags) {
+                            if (!this.flags.has(flag)) {
+                                canDo = false;
+                                break;
+                            }
+                        }
+                        if (!canDo) return;
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = 'action-card';
+                    card.innerHTML = `
+                        <div class="action-title">${activity.name}</div>
+                        <div class="action-desc">${activity.desc}</div>
+                    `;
+                    card.onclick = () => this.doActivity(activity);
+                    list.appendChild(card);
+                }
+            });
+        }
+
+        updateUI() {
+            document.getElementById('current-day').textContent = this.day;
+            document.getElementById('knowledge').textContent = this.stats.knowledge;
+            document.getElementById('courage').textContent = this.stats.courage;
+            document.getElementById('charm').textContent = this.stats.charm;
+            document.getElementById('combat').textContent = this.stats.combat;
+            document.getElementById('money').textContent = this.stats.money;
+        }
+
+        log(message, important = false) {
+            const logDiv = document.getElementById('game-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry' + (important ? ' important' : '');
+            entry.textContent = message;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+    }
+
+    // 启动游戏
+    window.game = new Game();
+    window.game.renderActions();
+
+})();
+    </script>
+</body>
+</html>
